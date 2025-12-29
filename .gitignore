@@ -1,0 +1,75 @@
+# Unity .gitignore - generated for "Simple Chess"
+# Recommended ignores for Unity projects (build artifacts, caches, user-specific files)
+
+# ===================
+# Unity generated files
+# ===================
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+UserSettings/
+MemoryCaptures/
+sysinfo
+*.stacktrace
+
+# Crash reports / logs
+CrashReports/
+*.log
+
+# ===================
+# Visual Studio / IDE
+# ===================
+.vs/
+.vscode/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+
+# Rider
+.idea/
+*.sln.iml
+
+# ===================
+# OS generated files
+# ===================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ===================
+# Build/Export results
+# ===================
+*.apk
+*.aab
+*.unitypackage
+
+# ===================
+# Packages / node
+# ===================
+# Keep Packages/manifest.json tracked; ignore lock files
+packages-lock.json
+node_modules/
+
+# ===================
+# Optional / generated
+# ===================
+# Addressables (generated data)
+/Assets/AddressableAssetsData/*
+
+# NOTE: Keep Unity .meta files tracked; do not ignore *.meta
+
+# End of .gitignore
