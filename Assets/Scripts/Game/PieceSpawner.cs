@@ -84,6 +84,7 @@ public class PieceSpawner : Singleton<PieceSpawner>
 
         Sprite sprite = GetSprite(type, team);
         piece.Init(type, team, new Vector2Int(x, y), sprite);
+        BoardManager.Instance.SetPieceAt(x, y, piece);
 
         Debug.Log($"Spawning {type} {team} at {x},{y}");
     }

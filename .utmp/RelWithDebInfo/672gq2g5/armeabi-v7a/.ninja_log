@@ -1,0 +1,12 @@
+# ninja log v5
+141	753	7888122284226096	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	c628b0f1f277a26e
+756	1256	7888122288646724	E:/Unity/Simple Chess/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/672gq2g5/obj/armeabi-v7a/libswappywrapper.so	48a8bbb52df85d46
+48	4304	7888122319413129	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	2a2651bbfa19f13f
+16	4470	7888122321274679	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	88917e808272c6b3
+81	4493	7888122321538179	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	d587410b076ed1fc
+99	4605	7888122322662632	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	f888012dda7ada1
+31	4611	7888122322662632	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	403c128160f0355a
+120	4936	7888122326023320	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	1b37031ebd79cfe9
+64	5318	7888122329714855	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	cc15fe26497444c9
+1	5568	7888122332370927	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	16fb4b2cad5506d8
+5568	5742	7888122334187384	E:/Unity/Simple Chess/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/672gq2g5/obj/armeabi-v7a/libgame.so	af23feea87595abd

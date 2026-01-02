@@ -1,0 +1,54 @@
+Structurer of Game:
+-------------------Scene---------------------
+Splash Scene :
+
+|_____SplashBG
+|     |____LOGO
+|     |____GlowInner
+      |____GlowOuter
+      |____Footer
+
+MainMenu Scene:
+
+|___MainMenuPanel
+|   |
+|   |___Header(2 Image : LOGO, SettinIcon)  Done
+|
+|   |___OptionPanel
+        |___PlayOffline
+        |___PlayWithFrind
+        |___PlayWithComputer
+
+
+OfflineGameScene:
+
+
+GamePanelBG
+│
+├── Header
+│   ├── BackButton
+│   ├── TimerPanel
+│   │   ├── WhitePlayerTime
+│   │   └── BlackPlayerTime
+│
+├── DestroyedPieceForOpponent
+│   └── CapturedGrid_Black   (Black pieces captured by White)
+│
+├── ChessBoard
+│
+├── DestroyedPieceForPlayer
+│   └── CapturedGrid_White   (White pieces captured by Black)
+│
+├── Footer
+│   ├── TurnText
+│   ├── StatusText
+│   |___ActionButtonPanel
+|       ├── DrawButton
+│       ├── ResignButton
+│
+└── ResultPopup (Hidden)
+    ├── ResultText
+    └── RestartButton
+
+
+

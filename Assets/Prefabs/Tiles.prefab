@@ -91,6 +91,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Tile
   boardPosition: {x: 0, y: 0}
   image: {fileID: 1689468587109616195}
+  button: {fileID: 5492651610987925231}
 --- !u!114 &5492651610987925231
 MonoBehaviour:
   m_ObjectHideFlags: 0
