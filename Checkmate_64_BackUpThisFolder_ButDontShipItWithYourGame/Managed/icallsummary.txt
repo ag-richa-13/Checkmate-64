@@ -307,6 +307,7 @@ UnityEngine.Application::get_isFocused
 UnityEngine.Application::get_isPlaying
 UnityEngine.Application::get_runInBackground
 UnityEngine.Application::OpenURL_Injected
+UnityEngine.Application::Quit
 UnityEngine.Application::get_streamingAssetsPath_Injected
 UnityEngine.Application::get_platform
 UnityEngine.AsyncOperation::InternalDestroy
@@ -1386,6 +1387,7 @@ UnityEngine.ScalableBufferManager::get_heightScaleFactor
 UnityEngine.ScalableBufferManager::get_widthScaleFactor
 UnityEngine.ScalableBufferManager::ResizeBuffers
 UnityEngine.SceneManagement.Scene::GetGUIDInternal_Injected
+UnityEngine.SceneManagement.Scene::GetNameInternal_Injected
 UnityEngine.SceneManagement.SceneManager::get_sceneCount
 UnityEngine.SceneManagement.SceneManager::GetActiveScene_Injected
 UnityEngine.SceneManagement.SceneManager::GetSceneAt_Injected

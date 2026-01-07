@@ -10,15 +10,107 @@ Splash Scene :
 
 MainMenu Scene:
 
-|___MainMenuPanel
-|   |
-|   |___Header(2 Image : LOGO, SettinIcon)  Done
-|
-|   |___OptionPanel
-        |___PlayOffline
-        |___PlayWithFrind
-        |___PlayWithComputer
+Canvas
+│
+└── SafeArea
+    │
+    ├── HeaderBar
+    │   ├── Logo (Left / Center)
+    │   ├── ProfileButton (Right – avatar circle)
+    │   └── SettingsButton (Top-right small icon)
+    │
+    ├── MainContentArea
+    │   ├── HomePanel        ⭐ default visible
+    │   ├── ProfilePanel     (Hidden)
+    │   ├── SettingsPanel    (Hidden)
+    │   └── LobbyPanel       (Hidden – Friends mode)
+    │
+    └── FooterBar
+        ├── HomeTabButton
+        ├── FriendsTabButton
+        └── ProfileTabButton
 
+HomePanel (Main Play Screen):
+
+
+HomePanel
+│
+├── WelcomeText
+│   └── "Welcome, Richa 👋"
+│
+├── PlayCardContainer
+│   ├── PlayOfflineCard
+│   │   ├── Icon
+│   │   ├── TitleText ("Play Offline")
+│   │   └── Subtitle ("Play on same device")
+│   │
+│   ├── PlayFriendsCard
+│   │   ├── Icon
+│   │   ├── TitleText ("Play with Friends")
+│   │   └── Subtitle ("Online multiplayer")
+│   │
+│   └── PlayComputerCard
+│       ├── Icon
+│       ├── TitleText ("Play vs Computer")
+│       └── Subtitle ("Practice with AI")
+│
+└── TipText (optional)
+    └── "Tip: You can play offline without internet"
+
+ProfilePanel:
+
+
+ProfilePanel
+│
+├── AvatarSection
+│   └── AvatarImage (Circle – static)
+│
+├── PlayerNameSection
+│   ├── LabelText ("Player Name")
+│   └── NameInputField (editable)
+│
+└── SaveButton
+
+
+
+LobbyPanel (Friends Mode – UI only):
+
+LobbyPanel
+│
+├── PlayerInfoBar
+│   └── PlayerNameText
+│
+├── RoomSection
+│   ├── RoomCodeText
+│   ├── CopyRoomCodeButton
+│   └── RoomCodeInput (Join)
+│
+├── PlayerList
+│   ├── PlayerSlot_1 (You)
+│   └── PlayerSlot_2 (Waiting / Joined)
+│
+└── ActionButtons
+    ├── CreateRoomButton
+    ├── JoinRoomButton
+    └── StartGameButton (Host only)
+
+SettingsPanel:
+
+
+SettingsPanel
+│
+├── Title ("Settings")
+│
+├── SoundSettings
+│   ├── MusicToggle
+│   └── SFXToggle
+│
+├── GameSettings
+│   ├── TimerDropdown (5 / 10 / 15 min)
+│   ├── BoardThemeSelector
+│   └── PieceThemeSelector
+│
+└── CreditsButton
 
 OfflineGameScene:
 
@@ -27,28 +119,32 @@ GamePanelBG
 │
 ├── Header
 │   ├── BackButton
-│   ├── TimerPanel
-│   │   ├── WhitePlayerTime
-│   │   └── BlackPlayerTime
+│   └── TimerPanel
+│       ├── WhitePlayerTime
+│       └── BlackPlayerTime
 │
 ├── DestroyedPieceForOpponent
-│   └── CapturedGrid_Black   (Black pieces captured by White)
+│   └── CapturedGrid_Black
 │
 ├── ChessBoard
 │
 ├── DestroyedPieceForPlayer
-│   └── CapturedGrid_White   (White pieces captured by Black)
+│   └── CapturedGrid_White
 │
 ├── Footer
 │   ├── TurnText
 │   ├── StatusText
-│   |___ActionButtonPanel
-|       ├── DrawButton
-│       ├── ResignButton
+│   └── ActionButtonPanel
+│       ├── DrawButton
+│       └── ResignButton
 │
-└── ResultPopup (Hidden)
-    ├── ResultText
-    └── RestartButton
+└── PopupPanel (Hidden) ⭐ SINGLE POPUP
+    ├── TitleText
+    ├── MessageText
+    └── ButtonPanel
+        ├── LeftButton   (Red)
+        └── RightButton  (Blue)
+
 
 
 

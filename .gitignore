@@ -73,3 +73,18 @@ node_modules/
 # NOTE: Keep Unity .meta files tracked; do not ignore *.meta
 
 # End of .gitignore
+
+# Project-specific generated / backup folders (from workspace attachments)
+# Ignore temporary tool output, native build artifacts and Unity backup folders
+.utmp/
+Checkmate_64_BackUpThisFolder_ButDontShipItWithYourGame/
+"Checkmate 64_BurstDebugInformation_DoNotShip"/
+tempburstlibs/
+il2cppOutput/
+Managed/
+*.slnx
+
+# Ninja/CMake intermediate files sometimes appear under build artifacts
+*.ninja*
+CMakeCache.txt
+.cmake/
