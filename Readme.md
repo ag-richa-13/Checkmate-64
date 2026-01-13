@@ -1,107 +1,79 @@
-# ♟️ Simple Chess – Unity Project
+# ♟️ Simple Chess
 
-A modern chess game built with **Unity UI**, designed for **offline play now** and **online multiplayer (future)** using **Photon PUN2**.
-
-This README explains the **complete app flow**, **scene structure**, **UI logic**, and **multiplayer preparation**.
+A modern chess game built with **Unity UI**. The project currently supports **offline play** and is structured to be **multiplayer-ready** using **Photon PUN2** in future updates.
 
 ---
 
-## 📱 APP FLOW (HIGH LEVEL)
+## 🚀 Quick Overview
 
-App Launch
-↓
-Splash Scene (animation only)
-↓
-Main Menu Scene
-↓
-Offline Game / Friends Lobby / Profile
-
-yaml
-Copy code
-
-- Splash screen is **visual only**
-- All logic starts **after Main Menu loads**
-- Global popups are available across scenes
+- Platform: Unity (URP)
+- Multiplayer: Prepared for Photon PUN2 (not yet implemented)
+- Current status: **Offline chess complete**, clean UI architecture, global popup system, internet-aware UX
 
 ---
 
-## 🎬 SCENE FLOW
+## 📱 App Flow (High Level)
 
-### 1️⃣ Splash Scene
+1. App Launch
+2. Splash Scene (visual only)
+3. Main Menu Scene
+4. Choose: Offline Game / Friends Lobby / Profile
 
-**Purpose:** Branding + smooth entry
+Notes:
 
-**What happens here**
-
-- Logo animation
-- Glow effects
-- Footer text
-- Scene auto-loads `MainMenuScene`
-
-**Important**
-
-- ❌ No popups shown here
-- ✅ GlobalCanvas is CREATED here and marked `DontDestroyOnLoad`
+- The Splash scene is visual only; all logic starts after Main Menu loads.
+- A global canvas is created at startup and persists across scenes.
 
 ---
 
-### 2️⃣ Main Menu Scene
+## 🎬 Scene Flow
 
-**Purpose:** Navigation hub
+### Splash Scene
 
-**Default State**
+- Purpose: Branding + smooth entry
+- Actions: Logo animation, glow effects, footer text
+- Automatically loads `MainMenuScene`
+- Important: No popups shown here; the `GlobalCanvas` is created and marked `DontDestroyOnLoad`.
 
-- HomePanel visible
-- Footer tabs enabled
-- Popups hidden
+### Main Menu Scene
 
-**On Scene Load**
+- Purpose: Navigation hub
+- Default: `HomePanel` visible, footer tabs enabled, popups hidden
+- On load:
+  1. Check Internet connection
+  2. If internet is ON:
+     - Connect to Photon
+     - If player name is not set → show `PlayerNamePopup`
+  3. If internet is OFF:
+     - Allow Offline / AI play
+     - Block Friends & Profile actions
 
-1. Check Internet connection
-2. If internet is ON:
-   - Connect to Photon
-   - If player name not set → show Name Popup
-3. If internet is OFF:
-   - Allow Offline / AI play
-   - Block Friends & Profile actions
+### Offline Game Scene
 
----
-
-### 3️⃣ Offline Game Scene
-
-**Purpose:** Full chess gameplay (local)
-
-**Includes**
-
-- Chess board
-- Turn system
-- Timer (Chess Clock)
-- Draw / Resign
-- End game popup
-
-**No Internet Required**
+- Purpose: Full chess gameplay (local)
+- Features: Chess board, turn system, chess clock, draw/resign, end-game popup
+- No Internet required
 
 ---
 
-## 🌐 GLOBAL CANVAS (IMPORTANT)
+## 🌐 Global Canvas (Important)
 
-Created in **Splash Scene**, persists forever.
+Created in the Splash scene and persists for the whole session.
 
-### Contains:
+Contains:
 
 - `PlayerNamePopup`
 - `NoInternetPopup`
 
-These popups:
+Rules:
 
-- ❌ Never show in Splash
-- ✅ Can show in Main Menu or later scenes
+- These popups never show in the Splash scene but may appear in Main Menu and later scenes.
 
 ---
 
-## 🧠 POPUP RULES (VERY IMPORTANT)
+## 🧠 Popup Rules
 
-### 🧾 Player Name Popup
+### Player Name Popup
 
 Shown when:
 
@@ -112,52 +84,40 @@ Shown when:
 Not shown when:
 
 - Internet is OFF
-- Player is playing Offline or AI
+- Player is in Offline or AI modes
 
----
+### No Internet Popup
 
-### 🚫 No Internet Popup
-
-Shown when:
-
-- Player tries to open:
-  - Friends tab
-  - Lobby panel
-  - Profile panel
-- AND internet is not available
-
+Shown when a user tries to open Friends, Lobby, or Profile while offline.
 Buttons:
 
-- Retry → checks connection again
-- Exit App → quits application
+- **Retry**: re-check connection
+- **Exit App**: quit application
 
 ---
 
-## 🏠 MAIN MENU UI STRUCTURE
+## 🏠 Main Menu UI Structure
 
+```
 Canvas
 └── SafeArea
-├── HeaderBar
-├── MainContentArea
-│ ├── HomePanel
-│ ├── ProfilePanel
-│ ├── SettingsPanel
-│ └── LobbyPanel
-├── FooterBar
-└── PlayerNamePopup (modal)
-
-yaml
-Copy code
+    ├── HeaderBar
+    ├── MainContentArea
+    │   ├── HomePanel
+    │   ├── ProfilePanel
+    │   ├── SettingsPanel
+    │   └── LobbyPanel
+    ├── FooterBar
+    └── PlayerNamePopup (modal)
+```
 
 ---
 
 ## 🏠 Home Panel
 
-Main play entry
-
-- Play Offline → Opens Offline Game
-- Play with Friends → Opens Lobby (internet required)
-- Play vs Computer → Future AI mode
+- **Play Offline** → Opens Offline Game
+- **Play with Friends** → Opens Lobby (internet required)
+- **Play vs Computer** → Future AI mode
 
 ---
 
@@ -166,131 +126,99 @@ Main play entry
 - Static avatar
 - Editable player name
 - Save button
-
-(Name is saved locally and synced to Photon nickname)
-
----
-
-## 👥 Lobby Panel (Friends Mode – UI Only)
-
-_Prepared for Photon Multiplayer_
-
-Includes:
-
-- Player info bar
-- Room code (create / join)
-- Player slots
-- Start game (host only)
-
-> No networking logic yet — UI only
+- Name saved locally and synced to Photon nickname when connected
 
 ---
 
-## 🧭 FOOTER NAVIGATION
+## 👥 Lobby Panel (Friends Mode — UI Only)
 
-Footer Tabs:
+Prepared for Photon multiplayer; includes player info bar, room create/join field, player slots, and start game button (host only). NOTE: networking logic not implemented yet — UI only.
 
-- Home
-- Friends
-- Profile
+---
+
+## 🧭 Footer Navigation
+
+Tabs: Home, Friends, Profile
 
 Rules:
 
-- Home → Always accessible
-- Friends / Profile → Require internet + player name
-
-Active tab:
-
-- Button image visible
-- Text color: `#F8FAFC`
-
-Inactive tab:
-
-- Button image alpha = 0
-- Text color: `#9CA3AF`
+- Home: always accessible
+- Friends/Profile: require internet + player name
+- Active tab: image visible, text color `#F8FAFC`
+- Inactive tab: image alpha = 0, text color `#9CA3AF`
 
 ---
 
-## ♟️ GAMEPLAY FLOW (OFFLINE)
+## ♟️ Gameplay Flow (Offline)
 
 1. White starts
 2. Select piece → show legal moves
 3. Move piece → animate
 4. Update turn
-5. Check / Checkmate / Stalemate detection
-6. Timer updates per turn
-7. End game popup on finish
+5. Detect check / checkmate / stalemate
+6. Update timers per turn
+7. Show end-game popup on finish
 
 ---
 
-## ⏱️ CHESS CLOCK
+## ⏱️ Chess Clock
 
-- Separate timer for White & Black
+- Separate timers for White and Black
 - Starts automatically
-- Stops on:
-  - Checkmate
-  - Draw
-  - Resign
-  - Time up
+- Stops on: checkmate, draw, resign, or time up
 
 ---
 
-## 🏁 END GAME OPTIONS
-
-Popup shows:
+## 🏁 End Game Options
 
 - Result text
-- Restart button
-- Exit button
+- Restart
+- Exit
 
 ---
 
-## 🧩 SCRIPT ARCHITECTURE
+## 🧩 Script Architecture
 
+```
 Assets/Scripts
-├── Core → App-wide systems
-├── Splash → Splash screen only
-├── Global → Popups, player data, internet
-├── MainMenu → Menu UI & controllers
-├── Game → Chess gameplay
-└── Shared → Reusable utilities (future)
-
-yaml
-Copy code
+├── Core      → App-wide systems
+├── Splash    → Splash-only logic
+├── Global    → Popups, player data, internet checks
+├── MainMenu  → Menu UI & controllers
+├── Game      → Chess gameplay logic
+└── Shared    → Reusable utilities
+```
 
 ---
 
-## 🌍 MULTIPLAYER PLAN (FUTURE)
+## 🌍 Multiplayer Plan (Future)
 
-Using **Photon PUN2**
-
-Planned:
+Using **Photon PUN2** (planned):
 
 - Player nickname sync
 - Room create / join
+- Player slot syncing
 - Move-based sync (not full board)
 - Lobby ready UI
 
-Not implemented yet.
+---
+
+## ✅ Current Status
+
+- ✔ Offline Chess: Complete
+- ✔ Clean UI architecture
+- ✔ Global popup system
+- ✔ Internet-aware UX
+- ✔ Multiplayer-ready project structure (UI)
 
 ---
 
-## ✅ CURRENT STATUS
+## 🚀 Next Steps
 
-✔ Offline Chess Complete  
-✔ Clean UI architecture  
-✔ Global popup system  
-✔ Internet-aware UX  
-✔ Multiplayer-ready structure
-
----
-
-## 🚀 NEXT STEPS
-
-- Photon Lobby logic
-- Room creation / join
-- PlayerSlot syncing
-- Online move synchronization
+1. Implement Photon Lobby logic
+2. Room creation / join flows
+3. Sync PlayerSlots and ready state
+4. Networked move synchronization
 
 ---
 
