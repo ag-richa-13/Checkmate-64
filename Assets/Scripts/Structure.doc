@@ -1,12 +1,32 @@
 Structurer of Game:
 -------------------Scene---------------------
-Splash Scene :
+SplashScene
+│
+├── Canvas
+│   └── SafeArea
+│       │
+│       └── SplashRoot
+│           │
+│           ├── Background
+│           │   └── SplashBG   (Full screen image)
+│           │
+│           ├── CenterContent
+│           │   ├── GlowOuter
+│           │   ├── GlowInner
+│           │   └── Logo
+│           │
+│           └── Footer
+│               └── FooterText
+│
+├── EventSystem
+│
+└── GlobalCanvas   ⭐ (DontDestroyOnLoad)
+    │
+    │
+    ├── PlayerNamePopup   (Hidden)
+    │
+    └── NoInternetPopup   (Hidden)
 
-|_____SplashBG
-|     |____LOGO
-|     |____GlowInner
-      |____GlowOuter
-      |____Footer
 
 MainMenu Scene:
 
@@ -25,10 +45,45 @@ Canvas
     │   ├── SettingsPanel    (Hidden)
     │   └── LobbyPanel       (Hidden – Friends mode)
     │
-    └── FooterBar
-        ├── HomeTabButton
-        ├── FriendsTabButton
-        └── ProfileTabButton
+    ├── FooterBar
+    |   ├── HomeTabButton
+    |   ├── FriendsTabButton
+    |   └── ProfileTabButton
+    |
+    └── PlayerNamePopup   ⭐ Modal (Top layer)
+
+NoInternetPopup
+│
+├── IconSection
+│   └── NoInternetIcon
+│
+├── TextSection
+│   ├── TitleText
+│   └── SubtitleText
+│
+└── ActionButtons
+    ├── RetryButton
+    └── ExitAppButton
+
+
+PlayerNamePopup Structure::
+PlayerNamePopup
+│
+├── Header
+│   ├── TitleText
+│   └── SubtitleText
+│
+├── AvatarSection
+│   └── AvatarImage (Circle – static)
+│
+├── InputSection
+│   ├── LabelText
+│   └── NameInputField
+│
+├── InfoText (optional)
+│
+└── ActionSection
+    └── ContinueButton
 
 HomePanel (Main Play Screen):
 
@@ -57,8 +112,11 @@ HomePanel
 └── TipText (optional)
     └── "Tip: You can play offline without internet"
 
-ProfilePanel:
 
+
+
+
+ProfilePanel:
 
 ProfilePanel
 │
@@ -71,31 +129,54 @@ ProfilePanel
 │
 └── SaveButton
 
-
-
 LobbyPanel (Friends Mode – UI only):
 
 LobbyPanel
 │
 ├── PlayerInfoBar
+│   ├── AvatarImage
 │   └── PlayerNameText
 │
 ├── RoomSection
 │   ├── RoomCodeText
 │   ├── CopyRoomCodeButton
-│   └── RoomCodeInput (Join)
+│   └── RoomCodeInputField   // Used only for Join
 │
 ├── PlayerList
-│   ├── PlayerSlot_1 (You)
-│   └── PlayerSlot_2 (Waiting / Joined)
+│   ├── PlayerSlot_1   // You (Host or Client)
+│   │   ├── PlayerNameText
+│   │   └── StatusText (Ready - Green)
+│   │
+│   └── PlayerSlot_2   // Second Player (Same Prefab)
+│       ├── PlayerNameText OR EmptyText
+│       └── StatusText (Waiting - Yellow / Joined - Green)
 │
 └── ActionButtons
     ├── CreateRoomButton
     ├── JoinRoomButton
-    └── StartGameButton (Host only)
+    └── StartGameButton   // Host Only
+
+
+PlayerSlot Prefab (Reusable for Both Players): 
+
+PlayerSlot (Prefab)
+│
+├── Background
+│
+├── PlayerNameText
+│   └── (Hidden if slot empty)
+│
+├── EmptyText ("Waiting for Player...")
+│   └── (Visible only when no player joined)
+│
+└── StatusText
+    ├── Ready    (Green)
+    ├── Waiting  (Yellow)
+    └── Joined   (Green)
+
+
 
 SettingsPanel:
-
 
 SettingsPanel
 │
@@ -148,3 +229,58 @@ GamePanelBG
 
 
 
+
+
+/**************************Script Structure**************************\
+
+Assets
+└── Scripts
+    │
+    ├── Core                     ⭐ App-level systems
+    │   ├── Singleton.cs
+    │   ├── SceneLoader.cs
+    │   └── NavigationBack.cs
+    │
+    ├── Splash                   ⭐ Splash screen only
+    │   └── SplashAnimator.cs
+    │
+    ├── MainMenu                 ⭐ Main Menu only
+    │   │
+    │   ├── Controllers          👉 Button / tab logic
+    │   │   ├── MainMenuController.cs
+    │   │   └── FooterController.cs
+    │   │
+    │   ├── Managers             👉 Data / state (future)
+    │   │   └── (empty for now)
+    │   │
+    │   └── UI                   👉 UI-only helpers
+    │       └── (future profile/settings UI scripts)
+    │
+    ├── Game                     ⭐ GAME SCENE (Offline)
+    │   │
+    │   ├── Board
+    │   │   ├── BoardManager.cs
+    │   │   └── Tile.cs
+    │   │
+    │   ├── Gameplay             👉 Chess rules & flow
+    │   │   ├── SelectionManager.cs
+    │   │   ├── TurnManager.cs
+    │   │   └── MatchController.cs
+    │   │
+    │   ├── Managers             👉 Game-wide managers
+    │   │   ├── GameManager.cs
+    │   │   └── ChessClock.cs
+    │   │
+    │   ├── Pieces
+    │   │   ├── Piece.cs
+    │   │   ├── PieceSpawner.cs
+    │   │   └── PieceAnimator.cs
+    │   │
+    │   └── UI                   👉 Game UI only
+    │       ├── UIManager.cs
+    │       ├── TileHighlight.cs
+    │       ├── UIButtonStyler.cs
+    │       └── CommonPopupController.cs
+    │
+    └── Shared                   ⭐ Reusable (future)
+        └── (SoundManager, Utils later)

@@ -52,16 +52,21 @@ public class FooterController : MonoBehaviour
 
     void ActivateTab(Tab tab)
     {
-        // Panels
+        if (tab != Tab.Home)
+        {
+            if (!GlobalPopupManager.Instance.CanUseOnlineFeature())
+                return;
+        }
+
         homePanel.SetActive(tab == Tab.Home);
         lobbyPanel.SetActive(tab == Tab.Friends);
         profilePanel.SetActive(tab == Tab.Profile);
 
-        // Visual states
         SetState(homeImage, homeText, tab == Tab.Home);
         SetState(friendsImage, friendsText, tab == Tab.Friends);
         SetState(profileImage, profileText, tab == Tab.Profile);
     }
+
 
     void SetState(Image img, TMP_Text txt, bool active)
     {

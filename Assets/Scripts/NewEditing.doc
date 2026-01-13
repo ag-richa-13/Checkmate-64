@@ -1,165 +1,238 @@
-E:\Unity\Simple Chess\Assets\Scripts\Splash\SplashAnimator.cs
-using System.Collections;
+SplashScene
+│
+├── Canvas
+│   └── SafeArea
+│       │
+│       └── SplashRoot
+│           │
+│           ├── Background
+│           │   └── SplashBG   (Full screen image)
+│           │
+│           ├── CenterContent
+│           │   ├── GlowOuter
+│           │   ├── GlowInner
+│           │   └── Logo
+│           │
+│           └── Footer
+│               └── FooterText
+│
+├── EventSystem
+│
+└── GlobalCanvas   ⭐ (DontDestroyOnLoad)
+    │
+    │
+    ├── PlayerNamePopup   (Hidden)
+    │
+    └── NoInternetPopup   (Hidden)
+
+
+MainMenu Scene:
+
+Canvas
+│
+└── SafeArea
+    │
+    ├── HeaderBar
+    │   ├── Logo (Left / Center)
+    │   ├── ProfileButton (Right – avatar circle)
+    │   └── SettingsButton (Top-right small icon)
+    │
+    ├── MainContentArea
+    │   ├── HomePanel        ⭐ default visible
+    │   ├── ProfilePanel     (Hidden)
+    │   ├── SettingsPanel    (Hidden)
+    │   └── LobbyPanel       (Hidden – Friends mode)
+    │
+    ├── FooterBar
+    |   ├── HomeTabButton
+    |   ├── FriendsTabButton
+    |   └── ProfileTabButton
+    |
+    └── PlayerNamePopup   ⭐ Modal (Top layer)
+
+NoInternetPopup
+│
+├── IconSection
+│   └── NoInternetIcon
+│
+├── TextSection
+│   ├── TitleText
+│   └── SubtitleText
+│
+└── ActionButtons
+    ├── RetryButton
+    └── ExitAppButton
+
+
+PlayerNamePopup Structure::
+PlayerNamePopup
+│
+├── Header
+│   ├── TitleText
+│   └── SubtitleText
+│
+├── AvatarSection
+│   └── AvatarImage (Circle – static)
+│
+├── InputSection
+│   ├── LabelText
+│   └── NameInputField
+│
+├── InfoText (optional)
+│
+└── ActionSection
+    └── ContinueButton
+
+HomePanel (Main Play Screen):
+
+
+HomePanel
+│
+├── WelcomeText
+│   └── "Welcome, Richa 👋"
+│
+├── PlayCardContainer
+│   ├── PlayOfflineCard
+│   │   ├── Icon
+│   │   ├── TitleText ("Play Offline")
+│   │   └── Subtitle ("Play on same device")
+│   │
+│   ├── PlayFriendsCard
+│   │   ├── Icon
+│   │   ├── TitleText ("Play with Friends")
+│   │   └── Subtitle ("Online multiplayer")
+│   │
+│   └── PlayComputerCard
+│       ├── Icon
+│       ├── TitleText ("Play vs Computer")
+│       └── Subtitle ("Practice with AI")
+│
+└── TipText (optional)
+    └── "Tip: You can play offline without internet"
+
+
+
+
+
+ProfilePanel:
+
+ProfilePanel
+│
+├── AvatarSection
+│   └── AvatarImage (Circle – static)
+│
+├── PlayerNameSection
+│   ├── LabelText ("Player Name")
+│   └── NameInputField (editable)
+│
+└── SaveButton
+
+LobbyPanel (Friends Mode – UI only):
+
+LobbyPanel
+│
+├── PlayerInfoBar
+│   ├── AvatarImage
+│   └── PlayerNameText
+│
+├── RoomSection
+│   ├── RoomCodeText
+│   ├── CopyRoomCodeButton
+│   └── RoomCodeInputField   // Used only for Join
+│
+├── PlayerList
+│   ├── PlayerSlot_1   // You (Host or Client)
+│   │   ├── PlayerNameText
+│   │   └── StatusText (Ready - Green)
+│   │
+│   └── PlayerSlot_2   // Second Player (Same Prefab)
+│       ├── PlayerNameText OR EmptyText
+│       └── StatusText (Waiting - Yellow / Joined - Green)
+│
+└── ActionButtons
+    ├── CreateRoomButton
+    ├── JoinRoomButton
+    └── StartGameButton   // Host Only
+
+
+PlayerSlot Prefab (Reusable for Both Players): 
+
+PlayerSlot (Prefab)
+│
+├── Background
+│
+├── PlayerNameText
+│   └── (Hidden if slot empty)
+│
+├── EmptyText ("Waiting for Player...")
+│   └── (Visible only when no player joined)
+│
+└── StatusText
+    ├── Ready    (Green)
+    ├── Waiting  (Yellow)
+    └── Joined   (Green)
+
+
+
+
+Script Structur for Main Menu:
+
+├Assets
+└── Scripts
+    │
+    ├── Core                     ⭐ App-level systems
+    │   ├── Singleton.cs
+    │   ├── SceneLoader.cs
+    │   └── NavigationBack.cs
+    │
+    ├── Splash                   ⭐ Splash screen only
+    │   └── SplashAnimator.cs
+    │
+    ├── MainMenu                 ⭐ Main Menu only
+    │   │
+    │   ├── Controllers          👉 Button / tab logic
+    │   │   ├── MainMenuController.cs
+    │   │   └── FooterController.cs
+    │   │
+    │   ├── Managers             👉 Data / state (future)
+    │   │   └── (empty for now)
+    │   │
+    │   └── UI                   👉 UI-only helpers
+    │       └── (future profile/settings UI scripts)
+    │
+    ├── Game                     ⭐ GAME SCENE (Offline)
+    │   │
+    │   ├── Board
+    │   │   ├── BoardManager.cs
+    │   │   └── Tile.cs
+    │   │
+    │   ├── Gameplay             👉 Chess rules & flow
+    │   │   ├── SelectionManager.cs
+    │   │   ├── TurnManager.cs
+    │   │   └── MatchController.cs
+    │   │
+    │   ├── Managers             👉 Game-wide managers
+    │   │   ├── GameManager.cs
+    │   │   └── ChessClock.cs
+    │   │
+    │   ├── Pieces
+    │   │   ├── Piece.cs
+    │   │   ├── PieceSpawner.cs
+    │   │   └── PieceAnimator.cs
+    │   │
+    │   └── UI                   👉 Game UI only
+    │       ├── UIManager.cs
+    │       ├── TileHighlight.cs
+    │       ├── UIButtonStyler.cs
+    │       └── CommonPopupController.cs
+    │
+    └── Shared                   ⭐ Reusable (future)
+        └── (SoundManager, Utils later)
+
+
+Code:
+MainMenuController.cs
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
-
-[RequireComponent(typeof(AudioSource))]
-public class SplashAnimator : MonoBehaviour
-{
-    [Header("UI")]
-    public Image logo;
-    public Image glowInner;
-    public Image glowOuter;
-    public Image footer;
-
-    [Header("Timing")]
-    public float totalDuration = 3.5f;
-
-    [Header("Pulse")]
-    public float pulseMin = 0.9f;
-    public float pulseMax = 1.05f;
-    public float pulseSpeed = 1.2f;
-
-    AudioSource audioSource;
-
-    Coroutine logoPulseRoutine;
-    Coroutine glowInnerRoutine;
-    Coroutine glowOuterRoutine;
-
-    void Start()
-    {
-        audioSource = GetComponent<AudioSource>();
-        PrepareInitialState();
-        StartCoroutine(PlaySplash());
-    }
-
-    void PrepareInitialState()
-    {
-        SetAlpha(logo, 0);
-        SetAlpha(glowInner, 0);
-        SetAlpha(glowOuter, 0);
-        SetAlpha(footer, 0);
-
-        logo.transform.localScale = Vector3.one * 0.9f;
-    }
-
-    IEnumerator PlaySplash()
-    {
-        // ================= GLOWS =================
-        glowOuterRoutine = StartCoroutine(GlowBreath(glowOuter, 1.05f));
-        glowInnerRoutine = StartCoroutine(GlowBreath(glowInner, 1.03f));
-
-        StartCoroutine(Rotate(glowOuter.transform, 25f));
-        StartCoroutine(Rotate(glowInner.transform, -35f));
-
-        yield return Fade(glowOuter, 0.5f);
-        yield return Fade(glowInner, 0.5f);
-
-        // ================= LOGO =================
-        yield return Fade(logo, 0.4f);
-
-        // 🔊 Play splash sound here
-        audioSource.Play();
-
-        logoPulseRoutine = StartCoroutine(LogoPulse());
-
-        // ================= FOOTER =================
-        yield return Fade(footer, 0.35f);
-
-        // ================= WAIT =================
-        yield return new WaitForSeconds(totalDuration - 1.5f);
-
-        // ================= EXIT =================
-        StopAllLoops();
-
-        yield return Fade(logo, 0.25f, true);
-        yield return Fade(glowInner, 0.25f, true);
-        yield return Fade(glowOuter, 0.25f, true);
-        yield return Fade(footer, 0.25f, true);
-
-        SceneManager.LoadScene("MainMenuScene");
-    }
-
-    // ==================================================
-    // EFFECTS
-    // ==================================================
-
-    IEnumerator LogoPulse()
-    {
-        float t = 0;
-        while (true)
-        {
-            t += Time.deltaTime * pulseSpeed;
-            float scale = Mathf.Lerp(pulseMin, pulseMax, (Mathf.Sin(t) + 1f) / 2f);
-            logo.transform.localScale = Vector3.one * scale;
-            yield return null;
-        }
-    }
-
-    IEnumerator GlowBreath(Image glow, float scaleMax)
-    {
-        float t = 0;
-        RectTransform rt = glow.rectTransform;
-
-        while (true)
-        {
-            t += Time.deltaTime;
-            float sin = (Mathf.Sin(t * 1.5f) + 1f) / 2f;
-
-            Color c = glow.color;
-            c.a = Mathf.Lerp(0.4f, 0.8f, sin);
-            glow.color = c;
-
-            rt.localScale = Vector3.one * Mathf.Lerp(1f, scaleMax, sin);
-            yield return null;
-        }
-    }
-
-    IEnumerator Rotate(Transform target, float speed)
-    {
-        while (true)
-        {
-            target.Rotate(0, 0, speed * Time.deltaTime);
-            yield return null;
-        }
-    }
-
-    IEnumerator Fade(Image img, float duration, bool fadeOut = false)
-    {
-        float t = 0;
-        Color c = img.color;
-
-        float start = fadeOut ? 1f : 0f;
-        float end = fadeOut ? 0f : 1f;
-
-        while (t < 1)
-        {
-            t += Time.deltaTime / duration;
-            c.a = Mathf.Lerp(start, end, t);
-            img.color = c;
-            yield return null;
-        }
-    }
-
-    void StopAllLoops()
-    {
-        if (logoPulseRoutine != null) StopCoroutine(logoPulseRoutine);
-        if (glowInnerRoutine != null) StopCoroutine(glowInnerRoutine);
-        if (glowOuterRoutine != null) StopCoroutine(glowOuterRoutine);
-    }
-
-    void SetAlpha(Image img, float value)
-    {
-        Color c = img.color;
-        c.a = value;
-        img.color = c;
-    }
-}
-
-E:\Unity\Simple Chess\Assets\Scripts\MainMenu\Controllers\MainMenuController.cs
-using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class MainMenuController : MonoBehaviour
@@ -171,7 +244,7 @@ public class MainMenuController : MonoBehaviour
     void Start()
     {
         playOffline.onClick.AddListener(() =>
-            SceneManager.LoadScene("OfflineScene"));
+            SceneLoader.Instance.LoadScene(SceneLoader.SceneType.OfflineGame));
 
         playFriends.onClick.AddListener(() =>
             Debug.Log("Multiplayer coming soon"));
@@ -181,140 +254,123 @@ public class MainMenuController : MonoBehaviour
     }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\UI\CommonPopupController.cs
 
+FooterController.cs
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using UnityEngine.SceneManagement;
 
-public class CommonPopupController : Singleton<CommonPopupController>
+public class FooterController : MonoBehaviour
 {
-    [Header("Popup UI")]
-    public GameObject popupRoot;
-    public TMP_Text titleText;
-    public TMP_Text messageText;
-    public Button leftButton;
-    public Button rightButton;
-    public TMP_Text leftButtonText;
-    public TMP_Text rightButtonText;
+    [Header("Buttons")]
+    public Button homeButton;
+    public Button friendsButton;
+    public Button profileButton;
+
+    [Header("Panels")]
+    public GameObject homePanel;
+    public GameObject lobbyPanel;
+    public GameObject profilePanel;
+
+    [Header("Texts")]
+    public TMP_Text homeText;
+    public TMP_Text friendsText;
+    public TMP_Text profileText;
+
+    [Header("Button Images")]
+    public Image homeImage;
+    public Image friendsImage;
+    public Image profileImage;
+
+    Color inactiveTextColor;
+    Color activeTextColor;
+
+    void Awake()
+    {
+        inactiveTextColor = Hex("#9CA3AF");
+        activeTextColor = Hex("#F8FAFC");
+
+        // Button listeners
+        homeButton.onClick.AddListener(() => ActivateTab(Tab.Home));
+        friendsButton.onClick.AddListener(() => ActivateTab(Tab.Friends));
+        profileButton.onClick.AddListener(() => ActivateTab(Tab.Profile));
+    }
 
     void Start()
     {
-        popupRoot.SetActive(false);
+        ActivateTab(Tab.Home); // default
     }
 
-    // ================= DRAW =================
-    public void ShowDrawConfirm()
+    enum Tab
     {
-        ShowPopup(
-            "Draw Match?",
-            "Do you want to declare a draw?",
-            "No",
-            "Yes",
-            ClosePopup,
-            () =>
-            {
-                MatchController.Instance.DeclareDraw();
-                ClosePopup();
-                ShowResult("Draw");
-            }
-        );
+        Home,
+        Friends,
+        Profile
     }
 
-    // ================= RESIGN =================
-    public void ShowResignConfirm()
+    void ActivateTab(Tab tab)
     {
-        ShowPopup(
-            "Resign Game?",
-            "Are you sure you want to resign?",
-            "No",
-            "Yes",
-            ClosePopup,
-            () =>
-            {
-                TeamColor resigning = TurnManager.Instance.currentTurn;
-                MatchController.Instance.Resign(resigning);
-                ClosePopup();
-                ShowResult(
-                    resigning == TeamColor.White
-                        ? "Black Wins (Resign)"
-                        : "White Wins (Resign)"
-                );
-            }
-        );
+        // Panels
+        homePanel.SetActive(tab == Tab.Home);
+        lobbyPanel.SetActive(tab == Tab.Friends);
+        profilePanel.SetActive(tab == Tab.Profile);
+
+        // Visual states
+        SetState(homeImage, homeText, tab == Tab.Home);
+        SetState(friendsImage, friendsText, tab == Tab.Friends);
+        SetState(profileImage, profileText, tab == Tab.Profile);
     }
 
-    // ================= EXIT =================
-    public void ShowExitConfirm()
+    void SetState(Image img, TMP_Text txt, bool active)
     {
-        ShowPopup(
-            "Exit Game?",
-            "Your progress will be lost.",
-            "No",
-            "Yes",
-            ClosePopup,
-            () =>
-            {
-                SceneManager.LoadScene("MainMenuScene");
-            }
-        );
+        Color c = img.color;
+        c.a = active ? 1f : 0f;
+        img.color = c;
+
+        txt.color = active ? activeTextColor : inactiveTextColor;
     }
 
-    // ================= RESULT =================
-    public void ShowResult(string resultTextValue)
+    Color Hex(string hex)
     {
-        ShowPopup(
-            "Game Over",
-            resultTextValue,
-            "Exit",
-            "Restart",
-            () =>
-            {
-                SceneManager.LoadScene("MainMenuScene");
-            },
-            () =>
-            {
-                GameManager.Instance.RestartGame();
-                ClosePopup();
-            }
-        );
-    }
-
-    // ================= CORE =================
-    void ShowPopup(
-        string title,
-        string message,
-        string leftTxt,
-        string rightTxt,
-        UnityEngine.Events.UnityAction leftAction,
-        UnityEngine.Events.UnityAction rightAction
-    )
-    {
-        popupRoot.SetActive(true);
-
-        titleText.text = title;
-        messageText.text = message;
-
-        leftButtonText.text = leftTxt;
-        rightButtonText.text = rightTxt;
-
-        leftButton.onClick.RemoveAllListeners();
-        rightButton.onClick.RemoveAllListeners();
-
-        leftButton.onClick.AddListener(leftAction);
-        rightButton.onClick.AddListener(rightAction);
-    }
-
-    public void ClosePopup()
-    {
-        popupRoot.SetActive(false);
+        ColorUtility.TryParseHtmlString(hex, out Color c);
+        return c;
     }
 }
 
 
 
-write a script in core for managing scene load and then use in these 3 
+Global canvas bana liya hai splash pe or uspe dono pop up bhi bana diye hai jab internet connect nahi hoga to ye pop up show hoga lekin ab ek condition hai ki ye popup sirf tab show hoga jab player apna name set krega ya multiplayer pe khelne ke liye jayega 
+
+agr player ka internet disconnect hai to player ko Name wala pop up show nahi hoga wo offline or ai wala play kar skta hai bina inetrnet ke lekin agr player profile panel pe ya lobby panel pe jane ki kosis krta hai to to ye pop up show hoga ineternet wala ki internet connect nahi hai or 
+
+or agr player app open krne se phle net on rkhta hai to usko name wala pop up show hoga name set krne ke liye 
+
+My Plan:
+
+Splash sene me ek canvas hai jo splash scene pe dikhega but now mai ek alg canvas banayenge jisme Global Things rakhenge jo kabhi bhi kisi bhi scene pe dikhane ki need ho skti hai Jaise Popup
+NoInternetPopup
+or Name wale pop up ko bhi usi me rkhenge 
 
 
- 
+
+Ab hum code likhenge phle Photon implement krna hai to script structure me dekh ke batana kaha pe photon ki scripts likhni hai or photon Pun2 implement hone ke bad Pop up se name set krna hai to step by step kam krenge 
+
+Step :
+1st : Photon implement
+2nd: Player name set using pop up and then also able to update using Profile Panel
+3rd: Player name update on WelcomeText, LobbyPanel jaha jaha bhi player name update hoga 
+
+
+uske bad baki ka dekhte hai kya karna hai 
+
+
+
+bhai mujhe ab proper code chahiye 
+
+step1: Photon implement
+step2: Internet Check
+Step3: Player name set
+Step4: Update every portion jaha jaha player name show hoga 
+
+
+

@@ -1,89 +1,3 @@
-MainMenu Scene:
-
-Canvas
-│
-└── SafeArea
-    │
-    ├── HeaderBar
-    │   ├── Logo (Left / Center)
-    │   ├── ProfileButton (Right – avatar circle)
-    │   └── SettingsButton (Top-right small icon)
-    │
-    ├── MainContentArea
-    │   ├── HomePanel        ⭐ default visible
-    │   ├── ProfilePanel     (Hidden)
-    │   ├── SettingsPanel    (Hidden)
-    │   └── LobbyPanel       (Hidden – Friends mode)
-    │
-    └── FooterBar
-        ├── HomeTabButton
-        ├── FriendsTabButton
-        └── ProfileTabButton
-
-HomePanel (Main Play Screen):
-
-
-HomePanel
-│
-├── WelcomeText
-│   └── "Welcome, Richa 👋"
-│
-├── PlayCardContainer
-│   ├── PlayOfflineCard
-│   │   ├── Icon
-│   │   ├── TitleText ("Play Offline")
-│   │   └── Subtitle ("Play on same device")
-│   │
-│   ├── PlayFriendsCard
-│   │   ├── Icon
-│   │   ├── TitleText ("Play with Friends")
-│   │   └── Subtitle ("Online multiplayer")
-│   │
-│   └── PlayComputerCard
-│       ├── Icon
-│       ├── TitleText ("Play vs Computer")
-│       └── Subtitle ("Practice with AI")
-│
-└── TipText (optional)
-    └── "Tip: You can play offline without internet"
-
-ProfilePanel:
-
-
-ProfilePanel
-│
-├── AvatarSection
-│   └── AvatarImage (Circle – static)
-│
-├── PlayerNameSection
-│   ├── LabelText ("Player Name")
-│   └── NameInputField (editable)
-│
-└── SaveButton
-
-
-
-Itna hogaya hai designing me main menu ka ab coding part krenge 
-
-
-ab phle mai code de rhi hu tujhe sare to phle apn ko jo game scene ka code hai usko Game scene Folder bana ke usme alg alg folder banayenge jaise  GamePlay alg , uI alg, or jo bhi controller, manager hai wo alg 
-
-fir ek folder MainMenu ka to usme bhi alg alg folder bana ke Ui ka alg, Manager, ka alg, Controller alg 
- same as splash scene 
- thik hai code bhi manage krenge jaise ui me sirf ui ka hona chahie, same as for others, 
-
- apn ko logic nahi kharab karna hai mainly game play ka bas code scrips organize krni hai thik hai 
-
-
-
- phle to tu mera text achhe se padha kar mai tujhe konse folder banane ke liye bol rhi hu 
-
-
- MainMenu(fir isme banenge ui, manager, controller, or jiski bhi need ho )
- Game(fir isme banenge UI, Manager, Comtroller or jiski bhi need ho)
- Splash(fir isme banenge Jo bhi jrt hai wo folder)
- Core or Utils jo bhi word suitable lage wo use krna hai  (isme wo banenge jo sab jgh use honge like pop up, or backButton, or whatever need)
-
 
  Scripts: 
 
@@ -1476,7 +1390,6 @@ public class CommonPopupController : Singleton<CommonPopupController>
 === MainMenuController.cs ===
 ```csharp
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class MainMenuController : MonoBehaviour
@@ -1488,7 +1401,7 @@ public class MainMenuController : MonoBehaviour
     void Start()
     {
         playOffline.onClick.AddListener(() =>
-            SceneManager.LoadScene("OfflineScene"));
+            SceneLoader.Instance.LoadScene(SceneLoader.SceneType.OfflineGame));
 
         playFriends.onClick.AddListener(() =>
             Debug.Log("Multiplayer coming soon"));
@@ -1496,7 +1409,7 @@ public class MainMenuController : MonoBehaviour
         playComputer.onClick.AddListener(() =>
             Debug.Log("AI coming soon"));
     }
-}
+} 
 ```
 
 === SplashAnimator.cs ===
@@ -1580,7 +1493,8 @@ public class SplashAnimator : MonoBehaviour
         yield return Fade(glowOuter, 0.25f, true);
         yield return Fade(footer, 0.25f, true);
 
-        SceneManager.LoadScene("MainMenuScene");
+        SceneLoader.Instance.LoadScene(SceneLoader.SceneType.MainMenu);
+
     }
 
     // ==================================================

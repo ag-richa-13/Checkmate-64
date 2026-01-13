@@ -9,13 +9,22 @@ public class MainMenuController : MonoBehaviour
 
     void Start()
     {
+        GlobalPopupManager.Instance.OnMainMenuLoaded();
+
         playOffline.onClick.AddListener(() =>
             SceneLoader.Instance.LoadScene(SceneLoader.SceneType.OfflineGame));
 
-        playFriends.onClick.AddListener(() =>
-            Debug.Log("Multiplayer coming soon"));
-
         playComputer.onClick.AddListener(() =>
             Debug.Log("AI coming soon"));
+
+        playFriends.onClick.AddListener(OpenFriends);
+    }
+
+    void OpenFriends()
+    {
+        if (!GlobalPopupManager.Instance.CanUseOnlineFeature())
+            return;
+
+        Debug.Log("Open Lobby Panel");
     }
 }
