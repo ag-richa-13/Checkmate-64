@@ -22,6 +22,7 @@ public class GlobalPopupManager : Singleton<GlobalPopupManager>
             namePopup.SetActive(true);
     }
 
+
     public bool CanUseOnlineFeature()
     {
         if (!InternetChecker.IsConnected())

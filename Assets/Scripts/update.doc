@@ -1,11 +1,4 @@
-
- Scripts: 
-
-
---- Script Sources (by file name) ---
-
-=== BoardManager.cs ===
-```csharp
+E:\Unity\Simple Chess\Assets\Scripts\Game\Board\BoardManager.cs
 using UnityEngine;
 
 public class BoardManager : Singleton<BoardManager>
@@ -91,10 +84,8 @@ public class BoardManager : Singleton<BoardManager>
     }
 
 }
-```
 
-=== Tile.cs ===
-```csharp
+E:\Unity\Simple Chess\Assets\Scripts\Game\Board\Tile.cs
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -121,174 +112,8 @@ public class Tile : MonoBehaviour
         image.sprite = sprite;
     }
 }
-```
 
-=== Singleton.cs ===
-```csharp
-using UnityEngine;
-
-public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
-{
-    private static T _instance;
-
-    public static T Instance
-    {
-        get
-        {
-            if (_instance == null)
-            {
-                _instance = FindFirstObjectByType<T>();
-                if (_instance == null)
-                {
-                    GameObject singletonObject = new GameObject(typeof(T).Name);
-                    _instance = singletonObject.AddComponent<T>();
-                    DontDestroyOnLoad(singletonObject);
-                }
-            }
-            return _instance;
-        }
-    }
-
-    protected virtual void Awake()
-    {
-        if (_instance == null)
-        {
-            _instance = this as T;
-            DontDestroyOnLoad(gameObject);
-        }
-        else if (_instance != this)
-        {
-            Destroy(gameObject);
-        }
-    }
-}
-```
-
-=== ChessClock.cs ===
-```csharp
-using UnityEngine;
-using TMPro;
-
-public class ChessClock : MonoBehaviour
-{
-    [Header("Time (seconds)")]
-    public float initialTime = 600f; // 10 min per player
-
-    [Header("UI")]
-    public TMP_Text whiteTimeText;
-    public TMP_Text blackTimeText;
-
-    private float whiteTime;
-    private float blackTime;
-
-    private bool isRunning = false;
-
-    void Start()
-    {
-        ResetClock();
-    }
-
-    void Update()
-    {
-        if (!isRunning) return;
-
-        if (TurnManager.Instance.currentTurn == TeamColor.White)
-        {
-            whiteTime -= Time.deltaTime;
-            if (whiteTime <= 0)
-            {
-                whiteTime = 0;
-                TimeUp(TeamColor.White);
-            }
-        }
-        else
-        {
-            blackTime -= Time.deltaTime;
-            if (blackTime <= 0)
-            {
-                blackTime = 0;
-                TimeUp(TeamColor.Black);
-            }
-        }
-
-        UpdateUI();
-    }
-
-    void TimeUp(TeamColor loser)
-    {
-        isRunning = false;
-
-        CommonPopupController.Instance.ShowResult(
-            loser == TeamColor.White ? "Black Wins (Time)" : "White Wins (Time)"
-        );
-    }
-
-    public void StartClock()
-    {
-        isRunning = true;
-    }
-
-    public void StopClock()
-    {
-        isRunning = false;
-    }
-
-    public void ResetClock()
-    {
-        whiteTime = initialTime;
-        blackTime = initialTime;
-        UpdateUI();
-        isRunning = true;
-    }
-
-    void UpdateUI()
-    {
-        whiteTimeText.text = FormatTime(whiteTime);
-        blackTimeText.text = FormatTime(blackTime);
-    }
-
-    string FormatTime(float time)
-    {
-        int min = Mathf.FloorToInt(time / 60);
-        int sec = Mathf.FloorToInt(time % 60);
-        return $"{min:00}:{sec:00}";
-    }
-}
-```
-
-=== GameManager.cs ===
-```csharp
-using UnityEngine;
-
-public class GameManager : Singleton<GameManager>
-{
-    public void RestartGame()
-    {
-        // 1️⃣ Clear selection
-        SelectionManager.Instance.ClearSelectionExternally();
-
-        // 2️⃣ Clear board
-        BoardManager.Instance.ClearBoard();
-
-        // 3️⃣ Reset UI
-        UIManager.Instance.ResetUI();
-
-        // 4️⃣ Reset turn
-        TurnManager.Instance.ResetTurn();
-
-        // 5️⃣ Respawn pieces
-        PieceSpawner.Instance.SpawnAllPieces();
-
-        // 6️⃣ Reset ChessClock
-        FindFirstObjectByType<ChessClock>().ResetClock();
-
-        Debug.Log("Game Restarted");
-    }
-}
-```
-
-=== MatchController.cs ===
-```csharp
+E:\Unity\Simple Chess\Assets\Scripts\Game\Gameplay\MatchController.cs
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -321,197 +146,8 @@ public class MatchController : Singleton<MatchController>
         chessClock.StopClock();
     }
 }
-```
 
-=== PieceSpawner.cs ===
-```csharp
-using UnityEngine;
-
-public class PieceSpawner : Singleton<PieceSpawner>
-{
-    [Header("References")]
-
-    public GameObject piecePrefab;
-
-    [Header("White Sprites")]
-    public Sprite whitePawn;
-    public Sprite whiteRook;
-    public Sprite whiteKnight;
-    public Sprite whiteBishop;
-    public Sprite whiteQueen;
-    public Sprite whiteKing;
-
-    [Header("Black Sprites")]
-    public Sprite blackPawn;
-    public Sprite blackRook;
-    public Sprite blackKnight;
-    public Sprite blackBishop;
-    public Sprite blackQueen;
-    public Sprite blackKing;
-
-    // void Start()
-    // {
-    //     SpawnAllPieces();
-    // }
-
-    public void SpawnAllPieces()
-    {
-        // White pieces
-        SpawnTeam(TeamColor.White);
-
-        // Black pieces
-        SpawnTeam(TeamColor.Black);
-    }
-
-    void SpawnTeam(TeamColor team)
-    {
-        int pawnRow = team == TeamColor.White ? 1 : 6;
-        int backRow = team == TeamColor.White ? 0 : 7;
-
-        // Pawns
-        for (int x = 0; x < 8; x++)
-        {
-            SpawnPiece(PieceType.Pawn, team, x, pawnRow);
-        }
-
-        // Rooks
-        SpawnPiece(PieceType.Rook, team, 0, backRow);
-        SpawnPiece(PieceType.Rook, team, 7, backRow);
-
-        // Knights
-        SpawnPiece(PieceType.Knight, team, 1, backRow);
-        SpawnPiece(PieceType.Knight, team, 6, backRow);
-
-        // Bishops
-        SpawnPiece(PieceType.Bishop, team, 2, backRow);
-        SpawnPiece(PieceType.Bishop, team, 5, backRow);
-
-        // Queen
-        SpawnPiece(PieceType.Queen, team, 3, backRow);
-
-        // King
-        SpawnPiece(PieceType.King, team, 4, backRow);
-    }
-
-    void SpawnPiece(PieceType type, TeamColor team, int x, int y)
-    {
-        Tile tile = BoardManager.Instance.GetTileAt(x, y);
-        if (tile == null) return;
-
-        GameObject pieceObj = Instantiate(piecePrefab, tile.transform);
-        Piece piece = pieceObj.GetComponent<Piece>();
-
-        // 🔥 FORCE CENTER POSITION (UI FIX)
-        RectTransform rt = pieceObj.GetComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.5f, 0.5f);
-        rt.anchorMax = new Vector2(0.5f, 0.5f);
-        rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = Vector2.zero;
-        rt.localScale = Vector3.one;
-
-        Sprite sprite = GetSprite(type, team);
-        piece.Init(type, team, new Vector2Int(x, y), sprite);
-        BoardManager.Instance.SetPieceAt(x, y, piece);
-
-        Debug.Log($"Spawning {type} {team} at {x},{y}");
-    }
-
-
-    Sprite GetSprite(PieceType type, TeamColor team)
-    {
-        if (team == TeamColor.White)
-        {
-            return type switch
-            {
-                PieceType.Pawn => whitePawn,
-                PieceType.Rook => whiteRook,
-                PieceType.Knight => whiteKnight,
-                PieceType.Bishop => whiteBishop,
-                PieceType.Queen => whiteQueen,
-                PieceType.King => whiteKing,
-                _ => null
-            };
-        }
-        else
-        {
-            return type switch
-            {
-                PieceType.Pawn => blackPawn,
-                PieceType.Rook => blackRook,
-                PieceType.Knight => blackKnight,
-                PieceType.Bishop => blackBishop,
-                PieceType.Queen => blackQueen,
-                PieceType.King => blackKing,
-                _ => null
-            };
-        }
-    }
-}
-```
-
-=== TurnManager.cs ===
-```csharp
-using UnityEngine;
-
-public class TurnManager : Singleton<TurnManager>
-{
-    public TeamColor currentTurn = TeamColor.White;
-
-    public bool IsMyTurn(TeamColor team)
-    {
-        return team == currentTurn;
-    }
-
-    public void SwitchTurn()
-    {
-        currentTurn = currentTurn == TeamColor.White
-            ? TeamColor.Black
-            : TeamColor.White;
-    }
-
-    public void ResetTurn()
-    {
-        currentTurn = TeamColor.White;
-        UIManager.Instance.UpdateTurnUI(currentTurn);
-    }
-
-    public void EvaluateGameState()
-    {
-        TeamColor current = currentTurn;
-        SelectionManager sm = SelectionManager.Instance;
-
-        bool hasMoves = sm.HasAnyLegalMove(current);
-        bool inCheck = sm.IsKingInCheck(current);
-
-        if (!hasMoves)
-        {
-            if (inCheck)
-            {
-                CommonPopupController.Instance.ShowResult(
-                    current == TeamColor.White
-                    ? "Black Wins"
-                    : "White Wins"
-                );
-            }
-            else
-            {
-                CommonPopupController.Instance.ShowResult("Draw");
-            }
-        }
-        else if (inCheck)
-        {
-            UIManager.Instance.ShowCheck();
-        }
-        else
-        {
-            UIManager.Instance.ClearStatus();
-        }
-    }
-}
-```
-
-=== SelectionManager.cs ===
-```csharp
+E:\Unity\Simple Chess\Assets\Scripts\Game\Gameplay\SelectionManager.cs
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -528,6 +164,9 @@ public class SelectionManager : Singleton<SelectionManager>
 
     public void OnPieceSelected(Piece piece)
     {
+        if (!OnlineTurnManager.Instance.IsMyTurn())
+            return;
+
         if (!TurnManager.Instance.IsMyTurn(piece.teamColor))
             return;
 
@@ -545,6 +184,9 @@ public class SelectionManager : Singleton<SelectionManager>
 
     public void OnTileSelected(Tile tile)
     {
+        if (!OnlineTurnManager.Instance.IsMyTurn())
+            return;
+
         if (selectedPiece == null)
             return;
 
@@ -803,7 +445,17 @@ public class SelectionManager : Singleton<SelectionManager>
         // ✅ LAST MOVE HIGHLIGHT (NEW)
         TileHighlight.Instance.HighlightLastMove(fromTile, toTile);
 
-        TurnManager.Instance.SwitchTurn();
+        // 🌐 ONLINE: Send move to other players via PhotonMoveSync
+        // 🔌 OFFLINE: Use local TurnManager
+        if (PhotonMoveSync.Instance != null)
+        {
+            PhotonMoveSync.Instance.SendMove(startPos, targetPos);
+        }
+        else
+        {
+            TurnManager.Instance.SwitchTurn();
+        }
+
         TurnManager.Instance.EvaluateGameState();
         ClearSelection();
     }
@@ -1083,12 +735,193 @@ public class SelectionManager : Singleton<SelectionManager>
         ClearSelection();
     }
 
+    public void ExecuteMoveExternally(Piece piece, Vector2Int targetPos)
+    {
+        ExecuteMove(piece, targetPos);
+    }
+
     #endregion
 }
-```
 
-=== Piece.cs ===
-```csharp
+E:\Unity\Simple Chess\Assets\Scripts\Game\Gameplay\TurnManager.cs
+using UnityEngine;
+
+public class TurnManager : Singleton<TurnManager>
+{
+    public TeamColor currentTurn = TeamColor.White;
+
+    public bool IsMyTurn(TeamColor team)
+    {
+        return team == currentTurn;
+    }
+
+    public void SwitchTurn()
+    {
+        currentTurn = currentTurn == TeamColor.White
+            ? TeamColor.Black
+            : TeamColor.White;
+    }
+
+    public void ResetTurn()
+    {
+        currentTurn = TeamColor.White;
+        UIManager.Instance.UpdateTurnUI(currentTurn);
+    }
+
+    public void EvaluateGameState()
+    {
+        TeamColor current = currentTurn;
+        SelectionManager sm = SelectionManager.Instance;
+
+        bool hasMoves = sm.HasAnyLegalMove(current);
+        bool inCheck = sm.IsKingInCheck(current);
+
+        if (!hasMoves)
+        {
+            if (inCheck)
+            {
+                CommonPopupController.Instance.ShowResult(
+                    current == TeamColor.White
+                    ? "Black Wins"
+                    : "White Wins"
+                );
+            }
+            else
+            {
+                CommonPopupController.Instance.ShowResult("Draw");
+            }
+        }
+        else if (inCheck)
+        {
+            UIManager.Instance.ShowCheck();
+        }
+        else
+        {
+            UIManager.Instance.ClearStatus();
+        }
+    }
+}
+
+
+E:\Unity\Simple Chess\Assets\Scripts\Game\Managers\ChessClock.cs
+using UnityEngine;
+using TMPro;
+
+public class ChessClock : MonoBehaviour
+{
+    [Header("Time (seconds)")]
+    public float initialTime = 600f; // 10 min per player
+
+    [Header("UI")]
+    public TMP_Text whiteTimeText;
+    public TMP_Text blackTimeText;
+
+    private float whiteTime;
+    private float blackTime;
+
+    private bool isRunning = false;
+
+    void Start()
+    {
+        ResetClock();
+    }
+
+    void Update()
+    {
+        if (!isRunning) return;
+
+        if (TurnManager.Instance.currentTurn == TeamColor.White)
+        {
+            whiteTime -= Time.deltaTime;
+            if (whiteTime <= 0)
+            {
+                whiteTime = 0;
+                TimeUp(TeamColor.White);
+            }
+        }
+        else
+        {
+            blackTime -= Time.deltaTime;
+            if (blackTime <= 0)
+            {
+                blackTime = 0;
+                TimeUp(TeamColor.Black);
+            }
+        }
+
+        UpdateUI();
+    }
+
+    void TimeUp(TeamColor loser)
+    {
+        isRunning = false;
+
+        CommonPopupController.Instance.ShowResult(
+            loser == TeamColor.White ? "Black Wins (Time)" : "White Wins (Time)"
+        );
+    }
+
+    public void StartClock()
+    {
+        isRunning = true;
+    }
+
+    public void StopClock()
+    {
+        isRunning = false;
+    }
+
+    public void ResetClock()
+    {
+        whiteTime = initialTime;
+        blackTime = initialTime;
+        UpdateUI();
+        isRunning = true;
+    }
+
+    void UpdateUI()
+    {
+        whiteTimeText.text = FormatTime(whiteTime);
+        blackTimeText.text = FormatTime(blackTime);
+    }
+
+    string FormatTime(float time)
+    {
+        int min = Mathf.FloorToInt(time / 60);
+        int sec = Mathf.FloorToInt(time % 60);
+        return $"{min:00}:{sec:00}";
+    }
+}
+
+E:\Unity\Simple Chess\Assets\Scripts\Game\Managers\GameManager.cs
+using UnityEngine;
+
+public class GameManager : Singleton<GameManager>
+{
+    public void RestartGame()
+    {
+        // 1️⃣ Clear selection
+        SelectionManager.Instance.ClearSelectionExternally();
+
+        // 2️⃣ Clear board
+        BoardManager.Instance.ClearBoard();
+
+        // 3️⃣ Reset UI
+        UIManager.Instance.ResetUI();
+
+        // 4️⃣ Reset turn
+        TurnManager.Instance.ResetTurn();
+
+        // 5️⃣ Respawn pieces
+        PieceSpawner.Instance.SpawnAllPieces();
+
+        // 6️⃣ Reset ChessClock
+        FindFirstObjectByType<ChessClock>().ResetClock();
+
+        Debug.Log("Game Restarted");
+    }
+}
+E:\Unity\Simple Chess\Assets\Scripts\Game\Pieces\Piece.cs
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -1161,10 +994,7 @@ public class Piece : MonoBehaviour, IPointerClickHandler
     }
 
 }
-```
-
-=== PieceAnimator.cs ===
-```csharp
+E:\Unity\Simple Chess\Assets\Scripts\Game\Pieces\PieceAnimator.cs
 using System.Collections;
 using UnityEngine;
 
@@ -1199,63 +1029,132 @@ public class PieceAnimator
         }
     }
 }
-```
 
-=== NavigationBack.cs ===
-```csharp
+E:\Unity\Simple Chess\Assets\Scripts\Game\Pieces\PieceSpawner.cs
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.InputSystem; // ✅ IMPORTANT
 
-public class NavigationBack : Singleton<NavigationBack>
+public class PieceSpawner : Singleton<PieceSpawner>
 {
-    [Header("Scene Names")]
-    public string mainMenuScene = "MainMenuScene";
-    public string gameScene = "OfflineScene";
+    [Header("References")]
 
-    void Update()
+    public GameObject piecePrefab;
+
+    [Header("White Sprites")]
+    public Sprite whitePawn;
+    public Sprite whiteRook;
+    public Sprite whiteKnight;
+    public Sprite whiteBishop;
+    public Sprite whiteQueen;
+    public Sprite whiteKing;
+
+    [Header("Black Sprites")]
+    public Sprite blackPawn;
+    public Sprite blackRook;
+    public Sprite blackKnight;
+    public Sprite blackBishop;
+    public Sprite blackQueen;
+    public Sprite blackKing;
+
+    // void Start()
+    // {
+    //     SpawnAllPieces();
+    // }
+
+    public void SpawnAllPieces()
     {
-        // Android back OR Escape key
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
-            HandleBack();
-        }
+        // White pieces
+        SpawnTeam(TeamColor.White);
 
-        // Android hardware back (extra safety)
-        if (Application.platform == RuntimePlatform.Android)
-        {
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-            {
-                HandleBack();
-            }
-        }
+        // Black pieces
+        SpawnTeam(TeamColor.Black);
     }
 
-    public void HandleBack()
+    void SpawnTeam(TeamColor team)
     {
-        string current = SceneManager.GetActiveScene().name;
+        int pawnRow = team == TeamColor.White ? 1 : 6;
+        int backRow = team == TeamColor.White ? 0 : 7;
 
-        // ❌ GameScene me back disabled
-        if (current == gameScene)
+        // Pawns
+        for (int x = 0; x < 8; x++)
         {
-            return;
+            SpawnPiece(PieceType.Pawn, team, x, pawnRow);
         }
 
-        if (current == mainMenuScene)
+        // Rooks
+        SpawnPiece(PieceType.Rook, team, 0, backRow);
+        SpawnPiece(PieceType.Rook, team, 7, backRow);
+
+        // Knights
+        SpawnPiece(PieceType.Knight, team, 1, backRow);
+        SpawnPiece(PieceType.Knight, team, 6, backRow);
+
+        // Bishops
+        SpawnPiece(PieceType.Bishop, team, 2, backRow);
+        SpawnPiece(PieceType.Bishop, team, 5, backRow);
+
+        // Queen
+        SpawnPiece(PieceType.Queen, team, 3, backRow);
+
+        // King
+        SpawnPiece(PieceType.King, team, 4, backRow);
+    }
+
+    void SpawnPiece(PieceType type, TeamColor team, int x, int y)
+    {
+        Tile tile = BoardManager.Instance.GetTileAt(x, y);
+        if (tile == null) return;
+
+        GameObject pieceObj = Instantiate(piecePrefab, tile.transform);
+        Piece piece = pieceObj.GetComponent<Piece>();
+
+        // 🔥 FORCE CENTER POSITION (UI FIX)
+        RectTransform rt = pieceObj.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = Vector2.zero;
+        rt.localScale = Vector3.one;
+
+        Sprite sprite = GetSprite(type, team);
+        piece.Init(type, team, new Vector2Int(x, y), sprite);
+        BoardManager.Instance.SetPieceAt(x, y, piece);
+
+        Debug.Log($"Spawning {type} {team} at {x},{y}");
+    }
+
+
+    Sprite GetSprite(PieceType type, TeamColor team)
+    {
+        if (team == TeamColor.White)
         {
-            Application.Quit();
+            return type switch
+            {
+                PieceType.Pawn => whitePawn,
+                PieceType.Rook => whiteRook,
+                PieceType.Knight => whiteKnight,
+                PieceType.Bishop => whiteBishop,
+                PieceType.Queen => whiteQueen,
+                PieceType.King => whiteKing,
+                _ => null
+            };
         }
         else
         {
-            SceneManager.LoadScene(mainMenuScene);
+            return type switch
+            {
+                PieceType.Pawn => blackPawn,
+                PieceType.Rook => blackRook,
+                PieceType.Knight => blackKnight,
+                PieceType.Bishop => blackBishop,
+                PieceType.Queen => blackQueen,
+                PieceType.King => blackKing,
+                _ => null
+            };
         }
     }
 }
 
-```
-
-=== CommonPopupController.cs ===
-```csharp
+E:\Unity\Simple Chess\Assets\Scripts\Game\UI\CommonPopupController.cs
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -1385,197 +1284,29 @@ public class CommonPopupController : Singleton<CommonPopupController>
     }
 }
 
-```
-
-=== MainMenuController.cs ===
-```csharp
+E:\Unity\Simple Chess\Assets\Scripts\Game\UI\OnlineUIBinder.cs
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
-public class MainMenuController : MonoBehaviour
+public class OnlineUIBinder : MonoBehaviour
 {
-    public Button playOffline;
-    public Button playFriends;
-    public Button playComputer;
+    [Header("Header UI")]
+    [SerializeField] private TMP_Text whitePlayerNameText;
+    [SerializeField] private TMP_Text blackPlayerNameText;
 
     void Start()
     {
-        playOffline.onClick.AddListener(() =>
-            SceneLoader.Instance.LoadScene(SceneLoader.SceneType.OfflineGame));
-
-        playFriends.onClick.AddListener(() =>
-            Debug.Log("Multiplayer coming soon"));
-
-        playComputer.onClick.AddListener(() =>
-            Debug.Log("AI coming soon"));
-    }
-} 
-```
-
-=== SplashAnimator.cs ===
-```csharp
-using System.Collections;
-using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
-
-[RequireComponent(typeof(AudioSource))]
-public class SplashAnimator : MonoBehaviour
-{
-    [Header("UI")]
-    public Image logo;
-    public Image glowInner;
-    public Image glowOuter;
-    public Image footer;
-
-    [Header("Timing")]
-    public float totalDuration = 3.5f;
-
-    [Header("Pulse")]
-    public float pulseMin = 0.9f;
-    public float pulseMax = 1.05f;
-    public float pulseSpeed = 1.2f;
-
-    AudioSource audioSource;
-
-    Coroutine logoPulseRoutine;
-    Coroutine glowInnerRoutine;
-    Coroutine glowOuterRoutine;
-
-    void Start()
-    {
-        audioSource = GetComponent<AudioSource>();
-        PrepareInitialState();
-        StartCoroutine(PlaySplash());
+        BindPlayerNames();
     }
 
-    void PrepareInitialState()
+    void BindPlayerNames()
     {
-        SetAlpha(logo, 0);
-        SetAlpha(glowInner, 0);
-        SetAlpha(glowOuter, 0);
-        SetAlpha(footer, 0);
-
-        logo.transform.localScale = Vector3.one * 0.9f;
-    }
-
-    IEnumerator PlaySplash()
-    {
-        // ================= GLOWS =================
-        glowOuterRoutine = StartCoroutine(GlowBreath(glowOuter, 1.05f));
-        glowInnerRoutine = StartCoroutine(GlowBreath(glowInner, 1.03f));
-
-        StartCoroutine(Rotate(glowOuter.transform, 25f));
-        StartCoroutine(Rotate(glowInner.transform, -35f));
-
-        yield return Fade(glowOuter, 0.5f);
-        yield return Fade(glowInner, 0.5f);
-
-        // ================= LOGO =================
-        yield return Fade(logo, 0.4f);
-
-        // 🔊 Play splash sound here
-        audioSource.Play();
-
-        logoPulseRoutine = StartCoroutine(LogoPulse());
-
-        // ================= FOOTER =================
-        yield return Fade(footer, 0.35f);
-
-        // ================= WAIT =================
-        yield return new WaitForSeconds(totalDuration - 1.5f);
-
-        // ================= EXIT =================
-        StopAllLoops();
-
-        yield return Fade(logo, 0.25f, true);
-        yield return Fade(glowInner, 0.25f, true);
-        yield return Fade(glowOuter, 0.25f, true);
-        yield return Fade(footer, 0.25f, true);
-
-        SceneLoader.Instance.LoadScene(SceneLoader.SceneType.MainMenu);
-
-    }
-
-    // ==================================================
-    // EFFECTS
-    // ==================================================
-
-    IEnumerator LogoPulse()
-    {
-        float t = 0;
-        while (true)
-        {
-            t += Time.deltaTime * pulseSpeed;
-            float scale = Mathf.Lerp(pulseMin, pulseMax, (Mathf.Sin(t) + 1f) / 2f);
-            logo.transform.localScale = Vector3.one * scale;
-            yield return null;
-        }
-    }
-
-    IEnumerator GlowBreath(Image glow, float scaleMax)
-    {
-        float t = 0;
-        RectTransform rt = glow.rectTransform;
-
-        while (true)
-        {
-            t += Time.deltaTime;
-            float sin = (Mathf.Sin(t * 1.5f) + 1f) / 2f;
-
-            Color c = glow.color;
-            c.a = Mathf.Lerp(0.4f, 0.8f, sin);
-            glow.color = c;
-
-            rt.localScale = Vector3.one * Mathf.Lerp(1f, scaleMax, sin);
-            yield return null;
-        }
-    }
-
-    IEnumerator Rotate(Transform target, float speed)
-    {
-        while (true)
-        {
-            target.Rotate(0, 0, speed * Time.deltaTime);
-            yield return null;
-        }
-    }
-
-    IEnumerator Fade(Image img, float duration, bool fadeOut = false)
-    {
-        float t = 0;
-        Color c = img.color;
-
-        float start = fadeOut ? 1f : 0f;
-        float end = fadeOut ? 0f : 1f;
-
-        while (t < 1)
-        {
-            t += Time.deltaTime / duration;
-            c.a = Mathf.Lerp(start, end, t);
-            img.color = c;
-            yield return null;
-        }
-    }
-
-    void StopAllLoops()
-    {
-        if (logoPulseRoutine != null) StopCoroutine(logoPulseRoutine);
-        if (glowInnerRoutine != null) StopCoroutine(glowInnerRoutine);
-        if (glowOuterRoutine != null) StopCoroutine(glowOuterRoutine);
-    }
-
-    void SetAlpha(Image img, float value)
-    {
-        Color c = img.color;
-        c.a = value;
-        img.color = c;
+        whitePlayerNameText.text = PhotonPlayerData.WhitePlayerName;
+        blackPlayerNameText.text = PhotonPlayerData.BlackPlayerName;
     }
 }
-```
 
-=== TileHighlight.cs ===
-```csharp
+E:\Unity\Simple Chess\Assets\Scripts\Game\UI\TileHighlight.cs
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -1648,10 +1379,45 @@ public class TileHighlight : Singleton<TileHighlight>
         activeMarks.Clear();
     }
 }
-```
 
-=== UIManager.cs ===
-```csharp
+E:\Unity\Simple Chess\Assets\Scripts\Game\UI\UIButtonStyler.cs
+using UnityEngine;
+using UnityEngine.UI;
+
+[RequireComponent(typeof(Button))]
+public class UIButtonStyler : MonoBehaviour
+{
+    void Awake()
+    {
+        Button btn = GetComponent<Button>();
+        ColorBlock cb = btn.colors;
+
+        cb.normalColor = Hex("#4F46E5");
+        cb.highlightedColor = Hex("#4338CA");
+        cb.pressedColor = Hex("#3730A3");
+        cb.selectedColor = cb.highlightedColor;
+        cb.disabledColor = new Color(0.4f, 0.4f, 0.4f);
+
+        btn.colors = cb;
+
+        TMPFix();
+    }
+
+    void TMPFix()
+    {
+        TMPro.TMP_Text t = GetComponentInChildren<TMPro.TMP_Text>();
+        if (t != null)
+            t.color = Hex("#F9FAFB");
+    }
+
+    Color Hex(string h)
+    {
+        ColorUtility.TryParseHtmlString(h, out Color c);
+        return c;
+    }
+}
+
+E:\Unity\Simple Chess\Assets\Scripts\Game\UI\UIManager.cs
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -1694,13 +1460,18 @@ public class UIManager : Singleton<UIManager>
 
         _twoSecondWait = new WaitForSeconds(2f);
         exitButton.onClick.RemoveAllListeners();
-        exitButton.onClick.AddListener(() =>
-        {
-            CommonPopupController.Instance.ShowExitConfirm();
-        });
+        exitButton.onClick.AddListener(OnBack);
 
     }
+    void OnEnable()
+    {
+        NavigationBack.OnBackRequested += HandleBack;
+    }
 
+    void OnDisable()
+    {
+        NavigationBack.OnBackRequested -= HandleBack;
+    }
     void Start()
     {
         ResetUI();
@@ -1793,129 +1564,456 @@ public class UIManager : Singleton<UIManager>
         ColorUtility.TryParseHtmlString(h, out Color c);
         return c;
     }
+
+    private void OnBack()
+    {
+        HandleBack();
+    }
+
+    private bool HandleBack()
+    {
+        CommonPopupController.Instance.ShowExitConfirm();
+        return true; // Back handled, do NOT propagate
+    }
+
 }
-```
 
-=== UIButtonStyler.cs ===
-```csharp
+E:\Unity\Simple Chess\Assets\Scripts\Networking\OnlineGameManager.cs
+using Photon.Pun;
 using UnityEngine;
-using UnityEngine.UI;
 
-[RequireComponent(typeof(Button))]
-public class UIButtonStyler : MonoBehaviour
+public class OnlineGameManager : MonoBehaviour
 {
     void Awake()
     {
-        Button btn = GetComponent<Button>();
-        ColorBlock cb = btn.colors;
-
-        cb.normalColor = Hex("#4F46E5");
-        cb.highlightedColor = Hex("#4338CA");
-        cb.pressedColor = Hex("#3730A3");
-        cb.selectedColor = cb.highlightedColor;
-        cb.disabledColor = new Color(0.4f, 0.4f, 0.4f);
-
-        btn.colors = cb;
-
-        TMPFix();
-    }
-
-    void TMPFix()
-    {
-        TMPro.TMP_Text t = GetComponentInChildren<TMPro.TMP_Text>();
-        if (t != null)
-            t.color = Hex("#F9FAFB");
-    }
-
-    Color Hex(string h)
-    {
-        ColorUtility.TryParseHtmlString(h, out Color c);
-        return c;
-    }
-}
-```
-
-=== FooterController.cs ===
-```csharp
-using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
-
-public class FooterController : MonoBehaviour
-{
-    [Header("Buttons")]
-    public Button homeButton;
-    public Button friendsButton;
-    public Button profileButton;
-
-    [Header("Panels")]
-    public GameObject homePanel;
-    public GameObject lobbyPanel;
-    public GameObject profilePanel;
-
-    [Header("Texts")]
-    public TMP_Text homeText;
-    public TMP_Text friendsText;
-    public TMP_Text profileText;
-
-    [Header("Button Images")]
-    public Image homeImage;
-    public Image friendsImage;
-    public Image profileImage;
-
-    Color inactiveTextColor;
-    Color activeTextColor;
-
-    void Awake()
-    {
-        inactiveTextColor = Hex("#9CA3AF");
-        activeTextColor = Hex("#F8FAFC");
-
-        // Button listeners
-        homeButton.onClick.AddListener(() => ActivateTab(Tab.Home));
-        friendsButton.onClick.AddListener(() => ActivateTab(Tab.Friends));
-        profileButton.onClick.AddListener(() => ActivateTab(Tab.Profile));
+        // Decide white / black as soon as scene loads
+        PhotonPlayerData.DecideSide();
     }
 
     void Start()
     {
-        ActivateTab(Tab.Home); // default
-    }
-
-    enum Tab
-    {
-        Home,
-        Friends,
-        Profile
-    }
-
-    void ActivateTab(Tab tab)
-    {
-        // Panels
-        homePanel.SetActive(tab == Tab.Home);
-        lobbyPanel.SetActive(tab == Tab.Friends);
-        profilePanel.SetActive(tab == Tab.Profile);
-
-        // Visual states
-        SetState(homeImage, homeText, tab == Tab.Home);
-        SetState(friendsImage, friendsText, tab == Tab.Friends);
-        SetState(profileImage, profileText, tab == Tab.Profile);
-    }
-
-    void SetState(Image img, TMP_Text txt, bool active)
-    {
-        Color c = img.color;
-        c.a = active ? 1f : 0f;
-        img.color = c;
-
-        txt.color = active ? activeTextColor : inactiveTextColor;
-    }
-
-    Color Hex(string hex)
-    {
-        ColorUtility.TryParseHtmlString(hex, out Color c);
-        return c;
+        Debug.Log($"Local Side: {PhotonPlayerData.LocalSide}");
+        Debug.Log($"White: {PhotonPlayerData.WhitePlayerName}");
+        Debug.Log($"Black: {PhotonPlayerData.BlackPlayerName}");
     }
 }
-```
 
+E:\Unity\Simple Chess\Assets\Scripts\Networking\OnlineTurnManager.cs
+using Photon.Pun;
+using UnityEngine;
+
+public class OnlineTurnManager : MonoBehaviourPun
+{
+    public static OnlineTurnManager Instance;
+
+    public TeamColor CurrentTurn { get; private set; }
+
+    void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    void Start()
+    {
+        InitializeTurn();
+    }
+
+    // ================= INIT =================
+
+    void InitializeTurn()
+    {
+        // White always starts
+        CurrentTurn = TeamColor.White;
+
+        UpdateTurnUI();
+    }
+
+    // ================= AUTHORITY =================
+
+    public bool IsMyTurn()
+    {
+        TeamColor myColor =
+            PhotonPlayerData.LocalSide == PlayerSide.White
+                ? TeamColor.White
+                : TeamColor.Black;
+
+        return CurrentTurn == myColor;
+    }
+
+    // ================= TURN SWITCH =================
+
+    public void EndTurn()
+    {
+        // Only the player who made the move can request turn end
+        if (!IsMyTurn())
+            return;
+
+        photonView.RPC(nameof(RPC_SwitchTurn), RpcTarget.All);
+    }
+
+    [PunRPC]
+    void RPC_SwitchTurn()
+    {
+        CurrentTurn =
+            CurrentTurn == TeamColor.White
+                ? TeamColor.Black
+                : TeamColor.White;
+
+        UpdateTurnUI();
+    }
+
+    // ================= UI =================
+
+    void UpdateTurnUI()
+    {
+        // We don't enable UIManager fully yet,
+        // but this keeps things future-safe
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdateTurnUI(CurrentTurn);
+        }
+    }
+}
+
+E:\Unity\Simple Chess\Assets\Scripts\Networking\PhotonManager.cs
+using Photon.Pun;
+using Photon.Realtime;
+using UnityEngine;
+
+public class PhotonManager : Singleton<PhotonManager>, IConnectionCallbacks, ILobbyCallbacks
+{
+    [Header("Photon Settings")]
+    [SerializeField] private string gameVersion = "1.0";
+
+    public bool IsConnected => PhotonNetwork.IsConnected;
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        PhotonNetwork.AutomaticallySyncScene = true;
+        PhotonNetwork.AddCallbackTarget(this);
+
+        PhotonNetwork.KeepAliveInBackground = 60;
+    }
+
+    void OnDestroy()
+    {
+        PhotonNetwork.RemoveCallbackTarget(this);
+    }
+
+    // ================= CONNECT =================
+
+    public void Connect()
+    {
+        if (PhotonNetwork.IsConnected)
+            return;
+
+        GlobalLoaderController.Instance.Show();
+
+        PhotonNetwork.NickName = PlayerData.Name;
+
+        PhotonNetwork.GameVersion = gameVersion;
+        PhotonNetwork.ConnectUsingSettings();
+    }
+
+    public void Disconnect()
+    {
+        if (PhotonNetwork.IsConnected)
+            PhotonNetwork.Disconnect();
+    }
+
+    // ================= CALLBACKS =================
+
+    public void OnConnectedToMaster()
+    {
+        Debug.Log("Connected to Master");
+
+        //  CRITICAL FIX
+        PhotonNetwork.JoinLobby();
+    }
+
+    public void OnJoinedLobby()
+    {
+        Debug.Log("Joined Default Lobby");
+        GlobalLoaderController.Instance.Hide();
+    }
+
+    public void OnDisconnected(DisconnectCause cause)
+    {
+        Debug.LogWarning($"Disconnected: {cause}");
+    }
+
+    public void OnConnected() { }
+    public void OnRegionListReceived(RegionHandler regionHandler) { }
+    public void OnCustomAuthenticationResponse(
+        System.Collections.Generic.Dictionary<string, object> data)
+    { }
+    public void OnCustomAuthenticationFailed(string debugMessage) { }
+    public void OnLeftLobby() { }
+    public void OnRoomListUpdate(System.Collections.Generic.List<RoomInfo> roomList) { }
+    public void OnLobbyStatisticsUpdate(System.Collections.Generic.List<TypedLobbyInfo> lobbyStatistics) { }
+}
+
+E:\Unity\Simple Chess\Assets\Scripts\Networking\PhotonRoomManager.cs
+using Photon.Pun;
+using Photon.Realtime;
+using UnityEngine;
+using System;
+
+public class PhotonRoomManager : MonoBehaviourPunCallbacks
+{
+    public static PhotonRoomManager Instance;
+
+    public event Action<string> RoomCreated;
+    public event Action<string> RoomJoined;
+    public event Action<string> PlayerJoined;
+
+    void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    // ================= CREATE =================
+
+    public void CreateRoom()
+    {
+        if (!PhotonNetwork.IsConnectedAndReady)
+        {
+            Debug.LogError("Photon not ready");
+            return;
+        }
+
+        PhotonPlayerData.SetHost();
+
+        string roomCode = GenerateRoomCode();
+
+        RoomOptions options = new RoomOptions
+        {
+            MaxPlayers = 2,
+            IsVisible = false,
+            IsOpen = true
+        };
+
+        PhotonNetwork.CreateRoom(roomCode, options);
+    }
+
+    // ================= JOIN =================
+
+    public void JoinRoom(string code)
+    {
+        if (!PhotonNetwork.IsConnectedAndReady)
+        {
+            Debug.LogError("Photon not ready");
+            return;
+        }
+
+        PhotonPlayerData.SetJoiner();
+        PhotonNetwork.JoinRoom(code);
+    }
+
+    // ================= START =================
+
+    public void StartGame()
+    {
+        if (!PhotonNetwork.IsMasterClient)
+            return;
+
+        PhotonNetwork.LoadLevel("OnlineGameScene");
+    }
+
+    // ================= CALLBACKS =================
+
+    public override void OnCreatedRoom()
+    {
+        Debug.Log("Room Created");
+        GlobalLoaderController.Instance.Hide();
+        RoomCreated?.Invoke(PhotonNetwork.CurrentRoom.Name);
+    }
+
+    public override void OnJoinedRoom()
+    {
+        Debug.Log("Joined Room");
+
+        RoomJoined?.Invoke(PhotonNetwork.CurrentRoom.Name);
+        PlayerJoined?.Invoke(null);
+    }
+
+    public override void OnPlayerEnteredRoom(Player newPlayer)
+    {
+        PlayerJoined?.Invoke(newPlayer.NickName);
+    }
+
+    public override void OnJoinRoomFailed(short returnCode, string message)
+    {
+        Debug.LogError(message);
+        GlobalLoaderController.Instance.Hide();
+    }
+
+    // ================= UTILS =================
+
+    string GenerateRoomCode()
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        string code = "";
+
+        for (int i = 0; i < 6; i++)
+            code += chars[UnityEngine.Random.Range(0, chars.Length)];
+
+        return code;
+    }
+}
+
+E:\Unity\Simple Chess\Assets\Scripts\Networking\PhotonPlayerData.cs
+using Photon.Pun;
+using Photon.Realtime;
+
+public enum PlayerSide
+{
+    White,
+    Black
+}
+
+public static class PhotonPlayerData
+{
+    public static bool IsHost { get; private set; }
+    public static PlayerSide LocalSide { get; private set; }
+
+    public static void SetHost()
+    {
+        IsHost = true;
+    }
+
+    public static void SetJoiner()
+    {
+        IsHost = false;
+    }
+
+    public static void Reset()
+    {
+        IsHost = false;
+        LocalSide = PlayerSide.White;
+    }
+
+    // ---------- SIDE DECISION ----------
+
+    public static void DecideSide()
+    {
+        LocalSide = PhotonNetwork.IsMasterClient
+            ? PlayerSide.White
+            : PlayerSide.Black;
+    }
+
+    // ---------- HELPERS ----------
+
+    public static string LocalNickName =>
+        PhotonNetwork.NickName;
+
+    public static string WhitePlayerName =>
+        PhotonNetwork.IsMasterClient
+            ? PhotonNetwork.MasterClient.NickName
+            : GetOtherPlayer().NickName;
+
+    public static string BlackPlayerName =>
+        PhotonNetwork.IsMasterClient
+            ? GetOtherPlayer().NickName
+            : PhotonNetwork.MasterClient.NickName;
+
+    static Player GetOtherPlayer()
+    {
+        Player[] players = PhotonNetwork.PlayerList;
+        return players[0] == PhotonNetwork.MasterClient
+            ? players[1]
+            : players[0];
+    }
+}
+
+E:\Unity\Simple Chess\Assets\Scripts\Networking\PhotonMoveSync.cs
+using Photon.Pun;
+using UnityEngine;
+
+public class PhotonMoveSync : MonoBehaviourPun
+{
+    public static PhotonMoveSync Instance;
+
+    void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    // =========================================================
+    // CALLED BY LOCAL PLAYER AFTER A LEGAL MOVE
+    // =========================================================
+    public void SendMove(Vector2Int from, Vector2Int to)
+    {
+        // Only current-turn player can send
+        if (!OnlineTurnManager.Instance.IsMyTurn())
+            return;
+
+        photonView.RPC(
+            nameof(RPC_ReceiveMove),
+            RpcTarget.Others,
+            from.x, from.y,
+            to.x, to.y
+        );
+
+        // End local turn AFTER sending
+        OnlineTurnManager.Instance.EndTurn();
+    }
+
+    // =========================================================
+    // RECEIVED BY REMOTE PLAYER
+    // =========================================================
+    [PunRPC]
+    void RPC_ReceiveMove(int fromX, int fromY, int toX, int toY)
+    {
+        ApplyRemoteMove(
+            new Vector2Int(fromX, fromY),
+            new Vector2Int(toX, toY)
+        );
+
+        // End turn for remote side
+        OnlineTurnManager.Instance.EndTurn();
+    }
+
+    // =========================================================
+    // APPLY MOVE WITHOUT RE-SENDING
+    // =========================================================
+    void ApplyRemoteMove(Vector2Int from, Vector2Int to)
+    {
+        Piece piece = BoardManager.Instance.GetPieceAt(from.x, from.y);
+        if (piece == null)
+            return;
+
+        // Direct execution path (bypasses selection clicks)
+        SelectionManager.Instance.ExecuteMoveExternally(piece, to);
+    }
+}
+
+
+
+refactor karna hi hai to game ki har ek script ko ache se padh ke or bina koi game logic ko bigade online or offline ke liye ache se bana scripts ko or agr jarurat pade to ek kam krte hai 
+
+rules ko ek alg script me rkhte hai jo bhi game rules hai uski ek alg script bana ke usme rkhenge jisko bar bar chedna nahi padega or game mode ke hisab se use kr skenge like abstraction use ho rha h isme 
+
+
+aise hi jrurat pade to logic ko tod tod ke alg alg script me dalte hai jisko change krna pade usko a;g jisko sirf use krna hai change nahi krna usko alg 

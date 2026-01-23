@@ -1,48 +1,41 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.InputSystem; // ✅ IMPORTANT
+using UnityEngine.InputSystem;
 
 public class NavigationBack : Singleton<NavigationBack>
 {
-    [Header("Scene Names")]
-    public string mainMenuScene = "MainMenuScene";
-    public string gameScene = "OfflineScene";
+    public delegate bool BackHandler();
+    public static event BackHandler OnBackRequested;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        DontDestroyOnLoad(gameObject);
+    }
 
     void Update()
     {
-        // Android back OR Escape key
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             HandleBack();
         }
-
-        // Android hardware back (extra safety)
-        if (Application.platform == RuntimePlatform.Android)
-        {
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-            {
-                HandleBack();
-            }
-        }
     }
 
-    public void HandleBack()
+    void HandleBack()
     {
-        string current = SceneManager.GetActiveScene().name;
-
-        // ❌ GameScene me back disabled
-        if (current == gameScene)
+        if (OnBackRequested == null)
         {
+            Application.Quit();
             return;
         }
 
-        if (current == mainMenuScene)
+        // Call handlers in reverse order (top-most UI first)
+        foreach (BackHandler handler in OnBackRequested.GetInvocationList())
         {
-            Application.Quit();
+            if (handler.Invoke())
+                return; // Back was handled
         }
-        else
-        {
-            SceneManager.LoadScene(mainMenuScene);
-        }
+
+        // Nobody handled it
+        Application.Quit();
     }
 }

@@ -9,14 +9,26 @@
         "name": "Animation",
         "dependencies": [
           {
+            "name": "AnimationClip",
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
+            "dependencyType": 0,
+            "icon": null
+          },
+          {
             "name": "Animator",
-            "scenes": [],
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
             "dependencyType": 0,
             "icon": null
           },
           {
             "name": "AnimatorController",
-            "scenes": [],
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
             "dependencyType": 1,
             "icon": null
           },
@@ -24,6 +36,20 @@
             "name": "AnimatorOverrideController",
             "scenes": [],
             "dependencyType": 0,
+            "icon": null
+          },
+          {
+            "name": "Avatar",
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
+            "dependencyType": 0,
+            "icon": null
+          },
+          {
+            "name": "Motion",
+            "scenes": [],
+            "dependencyType": 1,
             "icon": null
           },
           {
@@ -42,6 +68,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -49,7 +76,9 @@
           },
           {
             "name": "AudioClip",
-            "scenes": [],
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
             "dependencyType": 0,
             "icon": null
           },
@@ -58,6 +87,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -71,8 +101,18 @@
           },
           {
             "name": "AudioResource",
-            "scenes": [],
-            "dependencyType": 1,
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
+            "dependencyType": 0,
+            "icon": null
+          },
+          {
+            "name": "AudioSource",
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
+            "dependencyType": 0,
             "icon": null
           },
           {
@@ -103,6 +143,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -143,6 +184,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 1,
@@ -159,6 +201,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -193,6 +236,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 1,
@@ -227,6 +271,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -243,6 +288,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -250,19 +296,25 @@
           },
           {
             "name": "Mesh",
-            "scenes": [],
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
             "dependencyType": 0,
             "icon": null
           },
           {
             "name": "MeshFilter",
-            "scenes": [],
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
             "dependencyType": 0,
             "icon": null
           },
           {
             "name": "MeshRenderer",
-            "scenes": [],
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
             "dependencyType": 0,
             "icon": null
           },
@@ -271,6 +323,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -287,6 +340,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 1,
@@ -297,6 +351,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 1,
@@ -337,6 +392,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -353,6 +409,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -387,6 +444,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -396,6 +454,14 @@
             "name": "ShaderNameRegistry",
             "scenes": [],
             "dependencyType": 1,
+            "icon": null
+          },
+          {
+            "name": "SkinnedMeshRenderer",
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
+            "dependencyType": 0,
             "icon": null
           },
           {
@@ -415,6 +481,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -449,6 +516,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -459,6 +527,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -571,6 +640,12 @@
             "scenes": [],
             "dependencyType": 2,
             "icon": "package/com.unity.modules.jsonserialize"
+          },
+          {
+            "name": "Required by ParticleSystem Module",
+            "scenes": [],
+            "dependencyType": 2,
+            "icon": "package/com.unity.modules.particlesystem"
           },
           {
             "name": "Required by Physics Module",
@@ -930,24 +1005,79 @@
         ]
       },
       {
+        "name": "ParticleSystem",
+        "dependencies": [
+          {
+            "name": "ParticleSystem",
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
+            "dependencyType": 0,
+            "icon": null
+          },
+          {
+            "name": "ParticleSystemRenderer",
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
+            "dependencyType": 0,
+            "icon": null
+          }
+        ]
+      },
+      {
         "name": "Physics",
         "dependencies": [
           {
             "name": "BoxCollider",
-            "scenes": [],
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
+            "dependencyType": 0,
+            "icon": null
+          },
+          {
+            "name": "CapsuleCollider",
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
+            "dependencyType": 0,
+            "icon": null
+          },
+          {
+            "name": "CharacterController",
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
             "dependencyType": 0,
             "icon": null
           },
           {
             "name": "Collider",
             "scenes": [],
-            "dependencyType": 0,
+            "dependencyType": 1,
             "icon": null
           },
           {
             "name": "PhysicsManager",
             "scenes": [],
             "dependencyType": 1,
+            "icon": null
+          },
+          {
+            "name": "Rigidbody",
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
+            "dependencyType": 0,
+            "icon": null
+          },
+          {
+            "name": "SphereCollider",
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
+            "dependencyType": 0,
             "icon": null
           },
           {
@@ -1125,6 +1255,12 @@
             "scenes": [],
             "dependencyType": 2,
             "icon": "package/com.unity.modules.jsonserialize"
+          },
+          {
+            "name": "Required by ParticleSystem Module",
+            "scenes": [],
+            "dependencyType": 2,
+            "icon": "package/com.unity.modules.particlesystem"
           },
           {
             "name": "Required by Physics Module",
@@ -1386,6 +1522,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -1454,6 +1591,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,
@@ -1461,7 +1599,9 @@
           },
           {
             "name": "CanvasGroup",
-            "scenes": [],
+            "scenes": [
+              "Assets/Scenes/SplashScene.unity"
+            ],
             "dependencyType": 0,
             "icon": null
           },
@@ -1470,6 +1610,7 @@
             "scenes": [
               "Assets/Scenes/MainMenuScene.unity",
               "Assets/Scenes/OfflineScene.unity",
+              "Assets/Scenes/OnlineGameScene.unity",
               "Assets/Scenes/SplashScene.unity"
             ],
             "dependencyType": 0,

@@ -7,8 +7,10 @@ public class SceneLoader : Singleton<SceneLoader>
     {
         Splash,
         MainMenu,
-        OfflineGame
+        OfflineGame,
+        OnlineGame
     }
+
 
     private void Awake()
     {
@@ -47,6 +49,9 @@ public class SceneLoader : Singleton<SceneLoader>
 
             case SceneType.OfflineGame:
                 return "OfflineScene";
+
+            case SceneType.OnlineGame:
+                return "OnlineGameScene";
 
             default:
                 Debug.LogError("Scene not mapped!");

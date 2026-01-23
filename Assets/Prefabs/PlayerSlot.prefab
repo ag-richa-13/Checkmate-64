@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 1985247918657023260}
   - component: {fileID: 7409260831621486800}
   m_Layer: 5
-  m_Name: HostName
+  m_Name: PlayerName
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -35,7 +35,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 400, y: 100}
+  m_SizeDelta: {x: 300, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1985247918657023260
 CanvasRenderer:
@@ -282,6 +282,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1594149424904469992}
   - component: {fileID: 9129267548418862956}
+  - component: {fileID: 7996469405343703878}
   m_Layer: 5
   m_Name: PlayerSlot
   m_TagString: Untagged
@@ -308,7 +309,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1016, y: 100}
+  m_SizeDelta: {x: 916, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &9129267548418862956
 MonoBehaviour:
@@ -323,8 +324,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.HorizontalLayoutGroup
   m_Padding:
-    m_Left: 0
-    m_Right: 0
+    m_Left: 20
+    m_Right: 20
     m_Top: 0
     m_Bottom: 0
   m_ChildAlignment: 4
@@ -336,3 +337,17 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &7996469405343703878
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2850470299720257980}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e70ad5f8bf7e0d499b7a7d4e839a9cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSlotUI
+  playerNameText: {fileID: 7409260831621486800}
+  statusText: {fileID: 7445887636676850343}

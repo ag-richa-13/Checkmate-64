@@ -14,6 +14,9 @@ public class SelectionManager : Singleton<SelectionManager>
 
     public void OnPieceSelected(Piece piece)
     {
+        if (!OnlineTurnManager.Instance.IsMyTurn())
+            return;
+
         if (!TurnManager.Instance.IsMyTurn(piece.teamColor))
             return;
 
@@ -31,6 +34,9 @@ public class SelectionManager : Singleton<SelectionManager>
 
     public void OnTileSelected(Tile tile)
     {
+        if (!OnlineTurnManager.Instance.IsMyTurn())
+            return;
+
         if (selectedPiece == null)
             return;
 
@@ -289,7 +295,17 @@ public class SelectionManager : Singleton<SelectionManager>
         // ✅ LAST MOVE HIGHLIGHT (NEW)
         TileHighlight.Instance.HighlightLastMove(fromTile, toTile);
 
-        TurnManager.Instance.SwitchTurn();
+        // 🌐 ONLINE: Send move to other players via PhotonMoveSync
+        // 🔌 OFFLINE: Use local TurnManager
+        if (PhotonMoveSync.Instance != null)
+        {
+            PhotonMoveSync.Instance.SendMove(startPos, targetPos);
+        }
+        else
+        {
+            TurnManager.Instance.SwitchTurn();
+        }
+
         TurnManager.Instance.EvaluateGameState();
         ClearSelection();
     }
@@ -567,6 +583,11 @@ public class SelectionManager : Singleton<SelectionManager>
     public void ClearSelectionExternally()
     {
         ClearSelection();
+    }
+
+    public void ExecuteMoveExternally(Piece piece, Vector2Int targetPos)
+    {
+        ExecuteMove(piece, targetPos);
     }
 
     #endregion

@@ -19,9 +19,19 @@ public class PlayerNamePopupController : MonoBehaviour
         if (string.IsNullOrEmpty(name))
             return;
 
+        GlobalLoaderController.Instance.Show();
+
         PlayerData.Name = name;
         PhotonNetwork.NickName = name;
 
         gameObject.SetActive(false);
+
+        // Give UI one frame to refresh welcome text
+        Invoke(nameof(HideLoader), 0.2f);
+    }
+
+    void HideLoader()
+    {
+        GlobalLoaderController.Instance.Hide();
     }
 }

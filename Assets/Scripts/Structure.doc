@@ -22,35 +22,16 @@ SplashScene
 │
 └── GlobalCanvas   ⭐ (DontDestroyOnLoad)
     │
+    ├── Loader            (Hidden)
     │
     ├── PlayerNamePopup   (Hidden)
     │
     └── NoInternetPopup   (Hidden)
 
-
-MainMenu Scene:
-
-Canvas
-│
-└── SafeArea
+Loader
+GlobalLoader   ⭐
     │
-    ├── HeaderBar
-    │   ├── Logo (Left / Center)
-    │   ├── ProfileButton (Right – avatar circle)
-    │   └── SettingsButton (Top-right small icon)
-    │
-    ├── MainContentArea
-    │   ├── HomePanel        ⭐ default visible
-    │   ├── ProfilePanel     (Hidden)
-    │   ├── SettingsPanel    (Hidden)
-    │   └── LobbyPanel       (Hidden – Friends mode)
-    │
-    ├── FooterBar
-    |   ├── HomeTabButton
-    |   ├── FriendsTabButton
-    |   └── ProfileTabButton
-    |
-    └── PlayerNamePopup   ⭐ Modal (Top layer)
+    └── ChessPieceImage
 
 NoInternetPopup
 │
@@ -84,6 +65,32 @@ PlayerNamePopup
 │
 └── ActionSection
     └── ContinueButton
+
+MainMenu Scene:
+
+Canvas
+│
+└── SafeArea
+    │
+    ├── HeaderBar
+    │   ├── Logo (Left / Center)
+    │   ├── ProfileButton (Right – avatar circle)
+    │   └── SettingsButton (Top-right small icon)
+    │
+    ├── MainContentArea
+    │   ├── HomePanel        ⭐ default visible
+    │   ├── ProfilePanel     (Hidden)
+    │   ├── SettingsPanel    (Hidden)
+    │   └── LobbyPanel       (Hidden – Friends mode)
+    │
+    ├── FooterBar
+    |   ├── HomeTabButton
+    |   ├── FriendsTabButton
+    |   └── ProfileTabButton
+    |
+    └── PlayerNamePopup   ⭐ Modal (Top layer)
+
+
 
 HomePanel (Main Play Screen):
 
@@ -143,11 +150,11 @@ LobbyPanel
 │   └── RoomCodeInputField   // Used only for Join
 │
 ├── PlayerList
-│   ├── PlayerSlot_1   // You (Host or Client)
+│   ├── PlayerSlot_Prefab will instantiate here   // You (Host or Client)
 │   │   ├── PlayerNameText
 │   │   └── StatusText (Ready - Green)
 │   │
-│   └── PlayerSlot_2   // Second Player (Same Prefab)
+│   └── PlayerSlot_Prefab will instantiate here   // Second Player (Same Prefab)
 │       ├── PlayerNameText OR EmptyText
 │       └── StatusText (Waiting - Yellow / Joined - Green)
 │
@@ -228,6 +235,44 @@ GamePanelBG
 
 
 
+OnlineGameScene ::
+OnlineGameScene
+│
+├── Canvas
+│   └── SafeArea
+│       │
+│       └── GamePanelBG
+│           │
+│           ├── Header
+│           │   ├── BackButton
+│           │   ├── WhitePlayerInfo
+│           │   │   ├── NameText
+│           │   │   └── Timer
+│           │   └── BlackPlayerInfo
+│           │       ├── NameText
+│           │       └── Timer
+│           │
+│           ├── CapturedTop
+│           │   └── CapturedGrid_Opponent
+│           │
+│           ├── ChessBoard
+│           │
+│           ├── CapturedBottom
+│           │   └── CapturedGrid_Player
+│           │
+│           ├── Footer
+│           │   ├── TurnText
+│           │   ├── StatusText
+│           │   └── ActionButtons
+│           │       ├── DrawButton
+│           │       └── ResignButton
+│           │
+│           └── PopupPanel (Hidden) ⭐ SINGLE POPUP
+                ├── TitleText
+                ├── MessageText
+                └── ButtonPanel
+                    ├── LeftButton   (Red)
+                    └── RightButton  (Blue)
 
 
 
@@ -236,38 +281,49 @@ GamePanelBG
 Assets
 └── Scripts
     │
-    ├── Core                     ⭐ App-level systems
+    ├── Core                         // App-level core systems
     │   ├── Singleton.cs
     │   ├── SceneLoader.cs
     │   └── NavigationBack.cs
     │
-    ├── Splash                   ⭐ Splash screen only
+    ├── Splash                       // Splash screen only
     │   └── SplashAnimator.cs
     │
-    ├── MainMenu                 ⭐ Main Menu only
+    ├── Global                       // Scene-independent systems
+    │   ├── InternetChecker.cs
+    │   ├── PlayerData.cs
+    │   ├── GlobalPopupManager.cs
+    │   ├── GlobalLoaderController.cs
+    │   ├── PlayerNamePopupController.cs
+    │   └── NoInternetPopupController.cs
+    │
+    ├── MainMenu                     // Main Menu scene only
     │   │
-    │   ├── Controllers          👉 Button / tab logic
+    │   ├── Controllers              // Navigation & button logic
     │   │   ├── MainMenuController.cs
     │   │   └── FooterController.cs
     │   │
-    │   ├── Managers             👉 Data / state (future)
+    │   ├── Managers                 // Menu-level state (future)
     │   │   └── (empty for now)
     │   │
-    │   └── UI                   👉 UI-only helpers
-    │       └── (future profile/settings UI scripts)
+    │   └── UI                       // Panel & prefab UI logic
+    │       ├── HomeUIController.cs          // Home panel (Welcome text)
+    │       ├── ProfileUIController.cs       // Profile panel (Name update)
+    │       ├── LobbyPanelController.cs      // Lobby panel (Friends UI)
+    │       └── PlayerSlotUI.cs              // Player slot prefab UI
     │
-    ├── Game                     ⭐ GAME SCENE (Offline)
+    ├── Game                         // Offline Chess Game Scene
     │   │
     │   ├── Board
     │   │   ├── BoardManager.cs
     │   │   └── Tile.cs
     │   │
-    │   ├── Gameplay             👉 Chess rules & flow
+    │   ├── Gameplay                 // Chess rules & flow
     │   │   ├── SelectionManager.cs
     │   │   ├── TurnManager.cs
     │   │   └── MatchController.cs
     │   │
-    │   ├── Managers             👉 Game-wide managers
+    │   ├── Managers                 // Game-wide managers
     │   │   ├── GameManager.cs
     │   │   └── ChessClock.cs
     │   │
@@ -276,11 +332,17 @@ Assets
     │   │   ├── PieceSpawner.cs
     │   │   └── PieceAnimator.cs
     │   │
-    │   └── UI                   👉 Game UI only
+    │   └── UI                       // Game UI only
     │       ├── UIManager.cs
     │       ├── TileHighlight.cs
     │       ├── UIButtonStyler.cs
     │       └── CommonPopupController.cs
     │
-    └── Shared                   ⭐ Reusable (future)
+    ├── Networking                   // Multiplayer (Photon)
+    │   ├── PhotonManager.cs
+    │   ├── PhotonRoomManager.cs
+    |   ├── OnlineGameManager.cs
+    │   └── PhotonPlayerData.cs
+    │
+    └── Shared                       // Reusable utilities (future)
         └── (SoundManager, Utils later)

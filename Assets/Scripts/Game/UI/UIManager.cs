@@ -40,13 +40,18 @@ public class UIManager : Singleton<UIManager>
 
         _twoSecondWait = new WaitForSeconds(2f);
         exitButton.onClick.RemoveAllListeners();
-        exitButton.onClick.AddListener(() =>
-        {
-            CommonPopupController.Instance.ShowExitConfirm();
-        });
+        exitButton.onClick.AddListener(OnBack);
 
     }
+    void OnEnable()
+    {
+        NavigationBack.OnBackRequested += HandleBack;
+    }
 
+    void OnDisable()
+    {
+        NavigationBack.OnBackRequested -= HandleBack;
+    }
     void Start()
     {
         ResetUI();
@@ -139,4 +144,16 @@ public class UIManager : Singleton<UIManager>
         ColorUtility.TryParseHtmlString(h, out Color c);
         return c;
     }
+
+    private void OnBack()
+    {
+        HandleBack();
+    }
+
+    private bool HandleBack()
+    {
+        CommonPopupController.Instance.ShowExitConfirm();
+        return true; // Back handled, do NOT propagate
+    }
+
 }
