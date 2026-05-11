@@ -4,6 +4,14 @@ public class TurnManager : Singleton<TurnManager>
 {
     public TeamColor currentTurn = TeamColor.White;
 
+    private IChessRules rules;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        rules = new ChessRules();
+    }
+
     public bool IsMyTurn(TeamColor team)
     {
         return team == currentTurn;
@@ -14,6 +22,8 @@ public class TurnManager : Singleton<TurnManager>
         currentTurn = currentTurn == TeamColor.White
             ? TeamColor.Black
             : TeamColor.White;
+
+        UIManager.Instance.UpdateTurnUI(currentTurn);
     }
 
     public void ResetTurn()
@@ -28,7 +38,10 @@ public class TurnManager : Singleton<TurnManager>
         SelectionManager sm = SelectionManager.Instance;
 
         bool hasMoves = sm.HasAnyLegalMove(current);
-        bool inCheck = sm.IsKingInCheck(current);
+        bool inCheck = rules.IsKingInCheck(
+            current,
+            BoardManager.Instance.BoardState
+        );
 
         if (!hasMoves)
         {
@@ -36,8 +49,8 @@ public class TurnManager : Singleton<TurnManager>
             {
                 CommonPopupController.Instance.ShowResult(
                     current == TeamColor.White
-                    ? "Black Wins"
-                    : "White Wins"
+                        ? "Black Wins"
+                        : "White Wins"
                 );
             }
             else

@@ -1217,6 +1217,7 @@ GameObject:
   m_Component:
   - component: {fileID: 462530930}
   - component: {fileID: 462530931}
+  - component: {fileID: 462530932}
   m_Layer: 0
   m_Name: UIManager
   m_TagString: Untagged
@@ -1257,6 +1258,19 @@ MonoBehaviour:
   blackCapturedGrid: {fileID: 382102895}
   capturedPiecePrefab: {fileID: 4794796367633330583, guid: ac1f304b53979754aa659fdc34ef10b7, type: 3}
   exitButton: {fileID: 406091029}
+--- !u!114 &462530932
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 462530929}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bac313161aa6ce34780b7757da5f2085, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameSceneBootstrap
+  isOnlineGame: 0
 --- !u!1 &488745446
 GameObject:
   m_ObjectHideFlags: 0
@@ -1528,53 +1542,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 492815488}
   m_CullTransparentMesh: 1
---- !u!1 &511434964
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 511434965}
-  - component: {fileID: 511434966}
-  m_Layer: 0
-  m_Name: 'MatchController '
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &511434965
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 511434964}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 667126589}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &511434966
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 511434964}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 38dd8bcef9672d44d902470d54c01a89, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MatchController
-  chessClock: {fileID: 1970293832}
-  drawButton: {fileID: 2136922204}
-  resignButton: {fileID: 1539210198}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -2020,9 +1987,9 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2138832625}
+  - {fileID: 1029981146}
   - {fileID: 462530930}
   - {fileID: 1102790327}
-  - {fileID: 511434965}
   - {fileID: 1240028143}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -2719,6 +2686,79 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1012033855}
   m_CullTransparentMesh: 1
+--- !u!1 &1029981145
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1029981146}
+  - component: {fileID: 1029981148}
+  - component: {fileID: 1029981147}
+  - component: {fileID: 1029981149}
+  m_Layer: 0
+  m_Name: SelectionSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1029981146
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1029981145}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 667126589}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1029981147
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1029981145}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d21e06e6fb3866468f3f93ff0e03765, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MoveExecutor
+--- !u!114 &1029981148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1029981145}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ff5c0fc0abf2ac41b29bb1de3d3058c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SelectionManager
+  selectedPiece: {fileID: 0}
+  selectedTile: {fileID: 0}
+--- !u!114 &1029981149
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1029981145}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10b573bb9ef7146438d51c7d738512da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TurnManager
+  currentTurn: 0
 --- !u!1 &1102790325
 GameObject:
   m_ObjectHideFlags: 0
@@ -3909,7 +3949,6 @@ GameObject:
   - component: {fileID: 1970293830}
   - component: {fileID: 1970293829}
   - component: {fileID: 1970293831}
-  - component: {fileID: 1970293832}
   m_Layer: 5
   m_Name: TimerPanel
   m_TagString: Untagged
@@ -4002,21 +4041,6 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
---- !u!114 &1970293832
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1970293827}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc96703f56c3d79448a13afd1213259b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ChessClock
-  initialTime: 600
-  whiteTimeText: {fileID: 492815490}
-  blackTimeText: {fileID: 1011060809}
 --- !u!1 &2049622980
 GameObject:
   m_ObjectHideFlags: 0
@@ -4310,8 +4334,9 @@ GameObject:
   m_Component:
   - component: {fileID: 2138832625}
   - component: {fileID: 2138832624}
-  - component: {fileID: 2138832626}
-  - component: {fileID: 2138832627}
+  - component: {fileID: 2138832629}
+  - component: {fileID: 2138832630}
+  - component: {fileID: 2138832631}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -4359,7 +4384,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 667126589}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2138832626
+--- !u!114 &2138832629
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4368,12 +4393,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 2138832623}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0ff5c0fc0abf2ac41b29bb1de3d3058c, type: 3}
+  m_Script: {fileID: 11500000, guid: 8344d214fb16a054bb313486bf280818, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SelectionManager
-  selectedPiece: {fileID: 0}
-  selectedTile: {fileID: 0}
---- !u!114 &2138832627
+  m_EditorClassIdentifier: Assembly-CSharp::GameManager
+--- !u!114 &2138832630
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4382,10 +4405,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 2138832623}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 10b573bb9ef7146438d51c7d738512da, type: 3}
+  m_Script: {fileID: 11500000, guid: 38dd8bcef9672d44d902470d54c01a89, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TurnManager
-  currentTurn: 0
+  m_EditorClassIdentifier: Assembly-CSharp::MatchController
+  chessClock: {fileID: 2138832631}
+  drawButton: {fileID: 2136922204}
+  resignButton: {fileID: 1539210198}
+--- !u!114 &2138832631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2138832623}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc96703f56c3d79448a13afd1213259b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ChessClock
+  initialTime: 600
+  whiteTimeText: {fileID: 492815490}
+  blackTimeText: {fileID: 1011060809}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

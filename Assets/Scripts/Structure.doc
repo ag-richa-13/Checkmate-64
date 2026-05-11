@@ -281,15 +281,15 @@ OnlineGameScene
 Assets
 └── Scripts
     │
-    ├── Core                         // App-level core systems
+    ├── Core                                // App-level (non-game)
     │   ├── Singleton.cs
     │   ├── SceneLoader.cs
     │   └── NavigationBack.cs
     │
-    ├── Splash                       // Splash screen only
+    ├── Splash
     │   └── SplashAnimator.cs
     │
-    ├── Global                       // Scene-independent systems
+    ├── Global                              // App-wide (non-game)
     │   ├── InternetChecker.cs
     │   ├── PlayerData.cs
     │   ├── GlobalPopupManager.cs
@@ -297,52 +297,79 @@ Assets
     │   ├── PlayerNamePopupController.cs
     │   └── NoInternetPopupController.cs
     │
-    ├── MainMenu                     // Main Menu scene only
-    │   │
-    │   ├── Controllers              // Navigation & button logic
+    ├── MainMenu                            // Menu-only
+    │   ├── Controllers
     │   │   ├── MainMenuController.cs
     │   │   └── FooterController.cs
     │   │
-    │   ├── Managers                 // Menu-level state (future)
-    │   │   └── (empty for now)
+    │   ├── Managers
+    │   │   └── (future menu state)
     │   │
-    │   └── UI                       // Panel & prefab UI logic
-    │       ├── HomeUIController.cs          // Home panel (Welcome text)
-    │       ├── ProfileUIController.cs       // Profile panel (Name update)
-    │       ├── LobbyPanelController.cs      // Lobby panel (Friends UI)
-    │       └── PlayerSlotUI.cs              // Player slot prefab UI
+    │   └── UI
+    │       ├── HomeUIController.cs
+    │       ├── ProfileUIController.cs
+    │       ├── LobbyPanelController.cs
+    │       └── PlayerSlotUI.cs
     │
-    ├── Game                         // Offline Chess Game Scene
+    ├── Game                                // 🔥 ALL GAME-RELATED CODE
     │   │
-    │   ├── Board
-    │   │   ├── BoardManager.cs
+    │   ├── Core                            // Game-wide constants & context
+    │   │   ├── GameEnums.cs                // PieceType, TeamColor, GameResult
+    │   │   ├── GameConstants.cs            // Board size, directions, etc.
+    │   │   └── GameContext.cs              // Active mode, rules, board refs
+    │   │   └── GameSceneBootstrap.cs
+    │   │
+    │   ├── Board                           // Board + state (NO rules)
+    │   │   ├── BoardManager.cs             // Tile creation + façade
+    │   │   ├── BoardState.cs               // 8x8 piece matrix (pure C#)
     │   │   └── Tile.cs
     │   │
-    │   ├── Gameplay                 // Chess rules & flow
-    │   │   ├── SelectionManager.cs
-    │   │   ├── TurnManager.cs
-    │   │   └── MatchController.cs
+    │   ├── Rules                           // ♟ PURE CHESS LOGIC (CORE)
+    │   │   ├── IChessRules.cs              // Interface abstraction
+    │   │   ├── ChessRules.cs               // Facade for all rules
+    │   │   ├── MoveGenerator.cs            // Legal move generation
+    │   │   ├── CheckEvaluator.cs           // Check / mate / stalemate
+    │   │   │
+    │   │   └── SpecialMoves
+    │   │       ├── CastlingRule.cs
+    │   │       ├── EnPassantRule.cs
+    │   │       └── PromotionRule.cs
     │   │
-    │   ├── Managers                 // Game-wide managers
-    │   │   ├── GameManager.cs
-    │   │   └── ChessClock.cs
+    │   ├── Gameplay                        // Game flow orchestration
+    │   │   ├── SelectionManager.cs         // Input → rules → execution
+    │   │   ├── MoveExecutor.cs             // Apply move to board + visuals
+    │   │   ├── TurnManager.cs              // Turn state (offline base)
+    │   │   └── MatchController.cs           // Win / draw / resign
     │   │
-    │   ├── Pieces
-    │   │   ├── Piece.cs
+    │   ├── Modes                           // Offline vs Online glue
+    │   │   ├── IGameMode.cs
+    │   │   ├── OfflineGameMode.cs
+    │   │   └── OnlineGameMode.cs
+    │   │
+    │   ├── Pieces                          // Piece identity + visuals
+    │   │   ├── Piece.cs                    // Identity + click handler
+    │   │   ├── PieceView.cs                // Sprite & animation hooks
     │   │   ├── PieceSpawner.cs
     │   │   └── PieceAnimator.cs
     │   │
-    │   └── UI                       // Game UI only
+    │   ├── Managers                        // Game-wide utilities
+    │   │   ├── GameManager.cs              // Restart / reset orchestration
+    │   │   └── ChessClock.cs
+    │   │
+    │   └── UI                              // Game UI only (NO logic)
     │       ├── UIManager.cs
     │       ├── TileHighlight.cs
     │       ├── UIButtonStyler.cs
+    │       ├── OnlineUIBinder.cs
     │       └── CommonPopupController.cs
     │
-    ├── Networking                   // Multiplayer (Photon)
+    ├── Networking                          // Photon-only
     │   ├── PhotonManager.cs
     │   ├── PhotonRoomManager.cs
-    |   ├── OnlineGameManager.cs
+    │   ├── PhotonMoveSync.cs
+    │   ├── OnlineTurnManager.cs
+    │   ├── OnlineGameManager.cs
     │   └── PhotonPlayerData.cs
     │
-    └── Shared                       // Reusable utilities (future)
-        └── (SoundManager, Utils later)
+    └── Shared                              // Future reusable utils
+        └── (SoundManager, MathUtils, etc.)

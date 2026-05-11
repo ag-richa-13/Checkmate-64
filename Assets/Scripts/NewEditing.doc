@@ -1,22 +1,142 @@
-E:\Unity\Simple Chess\Assets\Scripts\Game\Board\BoardManager.cs
+
+Assets
+└── Scripts
+    │
+    ├── Core                                // App-level (non-game)
+    │   ├── Singleton.cs
+    │   ├── SceneLoader.cs
+    │   └── NavigationBack.cs
+    │
+    ├── Splash
+    │   └── SplashAnimator.cs
+    │
+    ├── Global                              // App-wide (non-game)
+    │   ├── InternetChecker.cs
+    │   ├── PlayerData.cs
+    │   ├── GlobalPopupManager.cs
+    │   ├── GlobalLoaderController.cs
+    │   ├── PlayerNamePopupController.cs
+    │   └── NoInternetPopupController.cs
+    │
+    ├── MainMenu                            // Menu-only
+    │   ├── Controllers
+    │   │   ├── MainMenuController.cs
+    │   │   └── FooterController.cs
+    │   │
+    │   ├── Managers
+    │   │   └── (future menu state)
+    │   │
+    │   └── UI
+    │       ├── HomeUIController.cs
+    │       ├── ProfileUIController.cs
+    │       ├── LobbyPanelController.cs
+    │       └── PlayerSlotUI.cs
+    │
+    ├── Game                                // 🔥 ALL GAME-RELATED CODE
+    │   │
+    │   ├── Core                            // Game-wide constants & context
+    │   │   ├── GameEnums.cs                // PieceType, TeamColor, GameResult
+    │   │   ├── GameConstants.cs            // Board size, directions, etc.
+    │   │   └── GameContext.cs              // Active mode, rules, board refs
+    │   │   └── GameSceneBootstrap.cs
+    │   │
+    │   ├── Board                           // Board + state (NO rules)
+    │   │   ├── BoardManager.cs             // Tile creation + façade
+    │   │   ├── BoardState.cs               // 8x8 piece matrix (pure C#)
+    │   │   └── Tile.cs
+    │   │
+    │   ├── Rules                           // ♟ PURE CHESS LOGIC (CORE)
+    │   │   ├── IChessRules.cs              // Interface abstraction
+    │   │   ├── ChessRules.cs               // Facade for all rules
+    │   │   ├── MoveGenerator.cs            // Legal move generation
+    │   │   ├── CheckEvaluator.cs           // Check / mate / stalemate
+    │   │   │
+    │   │   └── SpecialMoves
+    │   │       ├── CastlingRule.cs
+    │   │       ├── EnPassantRule.cs
+    │   │       └── PromotionRule.cs
+    │   │
+    │   ├── Gameplay                        // Game flow orchestration
+    │   │   ├── SelectionManager.cs         // Input → rules → execution
+    │   │   ├── MoveExecutor.cs             // Apply move to board + visuals
+    │   │   ├── TurnManager.cs              // Turn state (offline base)
+    │   │   └── MatchController.cs           // Win / draw / resign
+    │   │
+    │   ├── Modes                           // Offline vs Online glue
+    │   │   ├── IGameMode.cs
+    │   │   ├── OfflineGameMode.cs
+    │   │   └── OnlineGameMode.cs
+    │   │
+    │   ├── Pieces                          // Piece identity + visuals
+    │   │   ├── Piece.cs                    // Identity + click handler
+    │   │   ├── PieceView.cs                // Sprite & animation hooks
+    │   │   ├── PieceSpawner.cs
+    │   │   └── PieceAnimator.cs
+    │   │
+    │   ├── Managers                        // Game-wide utilities
+    │   │   ├── GameManager.cs              // Restart / reset orchestration
+    │   │   └── ChessClock.cs
+    │   │
+    │   └── UI                              // Game UI only (NO logic)
+    │       ├── UIManager.cs
+    │       ├── TileHighlight.cs
+    │       ├── UIButtonStyler.cs
+    │       ├── OnlineUIBinder.cs
+    │       └── CommonPopupController.cs
+    │
+    ├── Networking                          // Photon-only
+    │   ├── PhotonManager.cs
+    │   ├── PhotonRoomManager.cs
+    │   ├── PhotonMoveSync.cs
+    │   ├── OnlineTurnManager.cs
+    │   ├── OnlineGameManager.cs
+    │   └── PhotonPlayerData.cs
+    │
+    └── Shared                              // Future reusable utils
+        └── (SoundManager, MathUtils, etc.)
+
+
+
+
+
+
+==============================
+SCRIPTS CODE (COPY)
+==============================
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Board\BoardManager.cs
+------------------------------------------------------------
 using UnityEngine;
 
 public class BoardManager : Singleton<BoardManager>
 {
+    [Header("Board Setup")]
     public GameObject tilePrefab;
     public Sprite whiteTile;
     public Sprite blackTile;
 
+    [Header("Board Layout")]
     public Transform[] rows;
+
     private Tile[,] board = new Tile[8, 8];
 
-    private Piece[,] pieces = new Piece[8, 8];
+    // 🔥 SINGLE SOURCE OF TRUTH FOR PIECES
+    public BoardState BoardState { get; private set; }
+
+    protected override void Awake()
+    {
+        base.Awake();
+        BoardState = new BoardState();
+    }
 
     void Start()
     {
         GenerateBoard();
-        PieceSpawner.Instance.SpawnAllPieces(); // CALL AFTER BOARD READY
+        PieceSpawner.Instance.SpawnAllPieces(); // AFTER board ready
     }
+
+    // ================= BOARD GENERATION =================
 
     void GenerateBoard()
     {
@@ -34,24 +154,57 @@ public class BoardManager : Singleton<BoardManager>
             }
         }
     }
-    public Vector2Int GetKingPosition(TeamColor team)
-    {
-        for (int x = 0; x < 8; x++)
-        {
-            for (int y = 0; y < 8; y++)
-            {
-                Piece p = pieces[x, y];
-                if (p != null && p.pieceType == PieceType.King && p.teamColor == team)
-                    return new Vector2Int(x, y);
-            }
-        }
-        return new Vector2Int(-1, -1);
-    }
+
+    // ================= TILE ACCESS =================
 
     public Tile GetTileAt(int x, int y)
     {
+        if (x < 0 || x > 7 || y < 0 || y > 7)
+            return null;
+
         return board[x, y];
     }
+
+    // ================= PIECE ACCESS (FORWARDERS) =================
+
+    public Piece GetPieceAt(int x, int y)
+    {
+        return BoardState.GetPieceAt(x, y);
+    }
+
+    public void SetPieceAt(int x, int y, Piece piece)
+    {
+        BoardState.SetPieceAt(x, y, piece);
+    }
+
+    public Vector2Int GetKingPosition(TeamColor team)
+    {
+        return BoardState.GetKingPosition(team);
+    }
+
+    // ================= RESET =================
+
+    public void ClearBoard()
+    {
+        // Clear logical board
+        BoardState.Clear();
+
+        // Destroy all piece GameObjects
+        foreach (Piece p in FindObjectsByType<Piece>(FindObjectsSortMode.None))
+        {
+            Destroy(p.gameObject);
+        }
+    }
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Board\BoardState.cs
+------------------------------------------------------------
+using UnityEngine;
+public class BoardState
+{
+    private Piece[,] pieces = new Piece[8, 8];
 
     public Piece GetPieceAt(int x, int y)
     {
@@ -65,27 +218,33 @@ public class BoardManager : Singleton<BoardManager>
         pieces[x, y] = piece;
     }
 
-    public void ClearBoard()
+    public Vector2Int GetKingPosition(TeamColor team)
     {
-        // Clear pieces array
         for (int x = 0; x < 8; x++)
-        {
             for (int y = 0; y < 8; y++)
             {
-                pieces[x, y] = null;
+                Piece p = pieces[x, y];
+                if (p != null &&
+                    p.pieceType == PieceType.King &&
+                    p.teamColor == team)
+                    return new Vector2Int(x, y);
             }
-        }
 
-        // Destroy piece GameObjects
-        foreach (Piece p in FindObjectsByType<Piece>(FindObjectsSortMode.None))
-        {
-            Destroy(p.gameObject);
-        }
+        return new Vector2Int(-1, -1);
     }
 
+    public void Clear()
+    {
+        for (int x = 0; x < 8; x++)
+            for (int y = 0; y < 8; y++)
+                pieces[x, y] = null;
+    }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\Board\Tile.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Board\Tile.cs
+------------------------------------------------------------
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -113,7 +272,222 @@ public class Tile : MonoBehaviour
     }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\Gameplay\MatchController.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Core\GameConstants.cs
+------------------------------------------------------------
+EMPTY FILE (0 lines)
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Core\GameContext.cs
+------------------------------------------------------------
+using UnityEngine;
+
+public class GameContext : Singleton<GameContext>
+{
+    public IGameMode GameMode { get; private set; }
+    public IChessRules Rules { get; private set; }
+
+    public void Init()
+    {
+        Rules = new ChessRules();
+    }
+
+    public void SetGameMode(IGameMode mode)
+    {
+        GameMode = mode;
+    }
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Core\GameEnums.cs
+------------------------------------------------------------
+EMPTY FILE (0 lines)
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Core\GameSceneBootstrap.cs
+------------------------------------------------------------
+using UnityEngine;
+
+public class GameSceneBootstrap : MonoBehaviour
+{
+    [SerializeField] private bool isOnlineGame;
+
+    void Awake()
+    {
+        if (isOnlineGame)
+        {
+            GameContext.Instance.SetGameMode(
+                new OnlineGameMode()
+            );
+        }
+        else
+        {
+            GameContext.Instance.SetGameMode(
+                new OfflineGameMode()
+            );
+        }
+        GameContext.Instance.Init();
+    }
+
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Gameplay\MoveExecutor.cs
+------------------------------------------------------------
+using System.Collections;
+using UnityEngine;
+
+public class MoveExecutor : Singleton<MoveExecutor>
+{
+    public void ExecuteMove(Piece piece, Vector2Int target, bool isRemote = false)
+    {
+        MoveData move =
+            GameContext.Instance.Rules.CreateMove(
+                    piece,
+                    target,
+                    BoardManager.Instance.BoardState
+                );
+
+        StartCoroutine(ExecuteRoutine(move));
+    }
+
+
+    IEnumerator ExecuteRoutine(MoveData move)
+    {
+        BoardManager board = BoardManager.Instance;
+        BoardState state = board.BoardState;
+
+        // Capture
+        if (move.isCapture)
+        {
+            Piece captured =
+                state.GetPieceAt(
+                    move.capturedPiecePos.x,
+                    move.capturedPiecePos.y);
+
+            if (captured != null)
+            {
+                UIManager.Instance.AddCapturedPiece(captured);
+                yield return Capture(captured);
+                state.SetPieceAt(
+                    move.capturedPiecePos.x,
+                    move.capturedPiecePos.y,
+                    null);
+            }
+        }
+
+        // Castling rook move
+        if (move.isCastling)
+        {
+            Piece rook =
+                state.GetPieceAt(move.rookFrom.x, move.rookFrom.y);
+
+            state.SetPieceAt(move.rookFrom.x, move.rookFrom.y, null);
+            state.SetPieceAt(move.rookTo.x, move.rookTo.y, rook);
+
+            Tile rookTile =
+                board.GetTileAt(move.rookTo.x, move.rookTo.y);
+
+            rook.transform.SetParent(rookTile.transform);
+            rook.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
+            rook.boardPosition = move.rookTo;
+            rook.hasMoved = true;
+        }
+
+        // Move piece
+        state.SetPieceAt(move.from.x, move.from.y, null);
+        state.SetPieceAt(move.to.x, move.to.y, move.piece);
+
+        yield return AnimateMove(move.piece, move.to);
+
+        move.piece.boardPosition = move.to;
+        move.piece.hasMoved = true;
+
+        // Promotion
+        if (move.isPromotion)
+        {
+            PromotePawn(move.piece);
+        }
+
+        TileHighlight.Instance.HighlightLastMove(
+            board.GetTileAt(move.from.x, move.from.y),
+            board.GetTileAt(move.to.x, move.to.y));
+
+        GameContext.Instance.GameMode
+            .OnMoveExecuted(move.from, move.to);
+
+        TurnManager.Instance?.EvaluateGameState();
+    }
+
+    // ================= HELPERS =================
+
+    IEnumerator AnimateMove(Piece piece, Vector2Int target)
+    {
+        RectTransform rt = piece.GetComponent<RectTransform>();
+        RectTransform targetRT =
+            BoardManager.Instance
+                .GetTileAt(target.x, target.y)
+                .GetComponent<RectTransform>();
+
+        yield return PieceAnimator.MoveTo(rt, targetRT);
+
+        piece.transform.SetParent(targetRT);
+        rt.anchoredPosition = Vector2.zero;
+    }
+
+    IEnumerator Capture(Piece piece)
+    {
+        yield return PieceAnimator.CaptureEffect(
+            piece.GetComponent<RectTransform>());
+        Destroy(piece.gameObject);
+    }
+
+    void HandleCastling(
+        Piece king,
+        Vector2Int target,
+        BoardState state
+    )
+    {
+        int y = king.boardPosition.y;
+        int rookFromX = target.x > king.boardPosition.x ? 7 : 0;
+        int rookToX = target.x > king.boardPosition.x
+            ? target.x - 1
+            : target.x + 1;
+
+        Piece rook = state.GetPieceAt(rookFromX, y);
+        if (rook == null) return;
+
+        state.SetPieceAt(rookFromX, y, null);
+        state.SetPieceAt(rookToX, y, rook);
+
+        Tile rookTile =
+            BoardManager.Instance.GetTileAt(rookToX, y);
+
+        rook.transform.SetParent(rookTile.transform);
+        rook.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
+        rook.boardPosition = new Vector2Int(rookToX, y);
+        rook.hasMoved = true;
+    }
+
+    void PromotePawn(Piece pawn)
+    {
+        pawn.pieceType = PieceType.Queen;
+        pawn.image.sprite =
+            pawn.teamColor == TeamColor.White
+            ? PieceSpawner.Instance.whiteQueen
+            : PieceSpawner.Instance.blackQueen;
+    }
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Gameplay\MatchController.cs
+------------------------------------------------------------
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -147,8 +521,10 @@ public class MatchController : Singleton<MatchController>
     }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\Gameplay\SelectionManager.cs
-using System.Collections;
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Gameplay\SelectionManager.cs
+------------------------------------------------------------
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -157,17 +533,29 @@ public class SelectionManager : Singleton<SelectionManager>
     public Piece selectedPiece;
     public Tile selectedTile;
 
-    // Valid moves for currently selected piece
+    private IChessRules rules;
+    private MoveGenerator moveGenerator;
+
     private HashSet<Vector2Int> validMoves = new HashSet<Vector2Int>();
 
-    #region SELECTION
+    protected override void Awake()
+    {
+        base.Awake();
+        rules = new ChessRules();
+        moveGenerator = new MoveGenerator(rules);
+    }
+
+    // =====================================================
+    // PIECE SELECTION
+    // =====================================================
 
     public void OnPieceSelected(Piece piece)
     {
-        if (!OnlineTurnManager.Instance.IsMyTurn())
+        if (piece == null)
             return;
 
-        if (!TurnManager.Instance.IsMyTurn(piece.teamColor))
+        // Turn authority handled by GameMode
+        if (!GameContext.Instance.GameMode.IsMyTurn(piece.teamColor))
             return;
 
         ClearSelection();
@@ -182,545 +570,60 @@ public class SelectionManager : Singleton<SelectionManager>
         ShowPossibleMoves(piece);
     }
 
+    // =====================================================
+    // TILE SELECTION
+    // =====================================================
+
     public void OnTileSelected(Tile tile)
     {
-        if (!OnlineTurnManager.Instance.IsMyTurn())
+        if (selectedPiece == null || tile == null)
             return;
 
-        if (selectedPiece == null)
+        if (!GameContext.Instance.GameMode
+            .IsMyTurn(selectedPiece.teamColor))
             return;
 
-        Vector2Int targetPos = tile.boardPosition;
-
-        if (!validMoves.Contains(targetPos))
+        if (!validMoves.Contains(tile.boardPosition))
             return;
 
-        ExecuteMove(selectedPiece, targetPos);
+        MoveExecutor.Instance.ExecuteMove(
+            selectedPiece,
+            tile.boardPosition
+        );
+
+        ClearSelection();
     }
 
-    #endregion
-
-    #region MOVE GENERATION
+    // =====================================================
+    // MOVE GENERATION (READ-ONLY)
+    // =====================================================
 
     void ShowPossibleMoves(Piece piece)
     {
-        switch (piece.pieceType)
-        {
-            case PieceType.Pawn:
-                ShowPawnMoves(piece);
-                break;
-
-            case PieceType.Rook:
-                ShowLinearMoves(piece,
-                    Vector2Int.up, Vector2Int.down,
-                    Vector2Int.left, Vector2Int.right);
-                break;
-
-            case PieceType.Bishop:
-                ShowLinearMoves(piece,
-                    new Vector2Int(1, 1), new Vector2Int(1, -1),
-                    new Vector2Int(-1, 1), new Vector2Int(-1, -1));
-                break;
-
-            case PieceType.Queen:
-                ShowLinearMoves(piece,
-                    Vector2Int.up, Vector2Int.down,
-                    Vector2Int.left, Vector2Int.right,
-                    new Vector2Int(1, 1), new Vector2Int(1, -1),
-                    new Vector2Int(-1, 1), new Vector2Int(-1, -1));
-                break;
-
-            case PieceType.Knight:
-                ShowKnightMoves(piece);
-                break;
-
-            case PieceType.King:
-                ShowKingMoves(piece);
-                break;
-        }
-    }
-
-    #endregion
-
-    #region PAWN LOGIC
-
-    void ShowPawnMoves(Piece piece)
-    {
-        int dir = piece.teamColor == TeamColor.White ? 1 : -1;
-        int startRow = piece.teamColor == TeamColor.White ? 1 : 6;
-
-        int x = piece.boardPosition.x;
-        int y = piece.boardPosition.y;
-
-        // 1 step forward
-        if (BoardManager.Instance.GetPieceAt(x, y + dir) == null)
-        {
-            HighlightMove(new Vector2Int(x, y + dir));
-
-            // 2 step forward (first move only)
-            if (y == startRow &&
-                BoardManager.Instance.GetPieceAt(x, y + dir * 2) == null)
-            {
-                HighlightMove(new Vector2Int(x, y + dir * 2));
-            }
-        }
-
-        // Diagonal capture
-        TryAddCapture(x - 1, y + dir, piece);
-        TryAddCapture(x + 1, y + dir, piece);
-
-        // En Passant
-        TryEnPassant(piece);
-    }
-
-    void TryEnPassant(Piece pawn)
-    {
-        int dir = pawn.teamColor == TeamColor.White ? 1 : -1;
-        int y = pawn.boardPosition.y;
-
-        int[] sides = { -1, 1 };
-
-        foreach (int side in sides)
-        {
-            int x = pawn.boardPosition.x + side;
-            Piece enemyPawn = BoardManager.Instance.GetPieceAt(x, y);
-
-            if (enemyPawn != null &&
-                enemyPawn.pieceType == PieceType.Pawn &&
-                enemyPawn.teamColor != pawn.teamColor &&
-                enemyPawn.justMovedTwoSteps)
-            {
-                HighlightCapture(new Vector2Int(x, y + dir));
-            }
-        }
-    }
-
-    #endregion
-
-    #region OTHER PIECES
-
-    void ShowLinearMoves(Piece piece, params Vector2Int[] directions)
-    {
-        foreach (var dir in directions)
-        {
-            Vector2Int pos = piece.boardPosition;
-
-            while (true)
-            {
-                pos += dir;
-
-                if (!IsInsideBoard(pos))
-                    break;
-
-                Piece target = BoardManager.Instance.GetPieceAt(pos.x, pos.y);
-
-                if (target == null)
-                {
-                    HighlightMove(pos);
-                }
-                else
-                {
-                    if (piece.IsEnemy(target))
-                        HighlightCapture(pos);
-                    break;
-                }
-            }
-        }
-    }
-
-    void ShowKnightMoves(Piece piece)
-    {
-        Vector2Int[] moves =
-        {
-            new Vector2Int(1,2), new Vector2Int(2,1),
-            new Vector2Int(-1,2), new Vector2Int(-2,1),
-            new Vector2Int(1,-2), new Vector2Int(2,-1),
-            new Vector2Int(-1,-2), new Vector2Int(-2,-1)
-        };
-
-        foreach (var move in moves)
-        {
-            TryAddMoveOrCapture(piece.boardPosition + move, piece);
-        }
-    }
-
-    void ShowKingMoves(Piece piece)
-    {
-        for (int x = -1; x <= 1; x++)
-        {
-            for (int y = -1; y <= 1; y++)
-            {
-                if (x == 0 && y == 0) continue;
-                TryAddMoveOrCapture(piece.boardPosition + new Vector2Int(x, y), piece);
-            }
-        }
-
-        TryCastling(piece);
-    }
-
-    #endregion
-
-    #region EXECUTE MOVE
-
-    void ExecuteMove(Piece piece, Vector2Int targetPos)
-    {
-        Vector2Int startPos = piece.boardPosition;
-
-        // 🔥 STORE FROM / TO TILE (NEW)
-        Tile fromTile = BoardManager.Instance.GetTileAt(startPos.x, startPos.y);
-        Tile toTile = BoardManager.Instance.GetTileAt(targetPos.x, targetPos.y);
-
-        // En Passant capture
-        if (piece.pieceType == PieceType.Pawn &&
-            BoardManager.Instance.GetPieceAt(targetPos.x, targetPos.y) == null)
-        {
-            int dir = piece.teamColor == TeamColor.White ? -1 : 1;
-            Piece enPassantPawn = BoardManager.Instance.GetPieceAt(
-                targetPos.x, targetPos.y + dir);
-
-            if (enPassantPawn != null &&
-                enPassantPawn.pieceType == PieceType.Pawn &&
-                enPassantPawn.justMovedTwoSteps)
-            {
-                StartCoroutine(AnimateCapture(enPassantPawn));
-                BoardManager.Instance.SetPieceAt(targetPos.x, targetPos.y + dir, null);
-            }
-        }
-
-        // Normal capture
-        Piece target = BoardManager.Instance.GetPieceAt(targetPos.x, targetPos.y);
-        if (target != null)
-        {
-            UIManager.Instance.AddCapturedPiece(target);
-            StartCoroutine(AnimateCapture(target));
-        }
-
-        // Castling move
-        if (piece.pieceType == PieceType.King &&
-            Mathf.Abs(startPos.x - targetPos.x) == 2)
-        {
-            int rookFromX = targetPos.x > startPos.x ? 7 : 0;
-            int rookToX = targetPos.x > startPos.x ? targetPos.x - 1 : targetPos.x + 1;
-
-            Piece rook = BoardManager.Instance.GetPieceAt(rookFromX, startPos.y);
-            if (rook != null)
-            {
-                BoardManager.Instance.SetPieceAt(rookFromX, startPos.y, null);
-                BoardManager.Instance.SetPieceAt(rookToX, startPos.y, rook);
-
-                rook.transform.SetParent(
-                    BoardManager.Instance.GetTileAt(rookToX, startPos.y).transform
-                );
-                rook.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
-                rook.boardPosition = new Vector2Int(rookToX, startPos.y);
-                rook.hasMoved = true;
-            }
-        }
-
-        // Update board
-        BoardManager.Instance.SetPieceAt(startPos.x, startPos.y, null);
-        BoardManager.Instance.SetPieceAt(targetPos.x, targetPos.y, piece);
-
-        // Move UI (Animated)
-        StartCoroutine(AnimateMove(piece, targetPos));
-
-        piece.boardPosition = targetPos;
-        piece.hasMoved = true;
-
-        // Pawn promotion
-        if (piece.pieceType == PieceType.Pawn &&
-            ((piece.teamColor == TeamColor.White && targetPos.y == 7) ||
-             (piece.teamColor == TeamColor.Black && targetPos.y == 0)))
-        {
-            PromotePawn(piece);
-        }
-
-        // Reset en-passant flags
-        foreach (var p in FindObjectsByType<Piece>(FindObjectsSortMode.None))
-        {
-            if (p.pieceType == PieceType.Pawn)
-                p.justMovedTwoSteps = false;
-        }
-
-        // ✅ LAST MOVE HIGHLIGHT (NEW)
-        TileHighlight.Instance.HighlightLastMove(fromTile, toTile);
-
-        // 🌐 ONLINE: Send move to other players via PhotonMoveSync
-        // 🔌 OFFLINE: Use local TurnManager
-        if (PhotonMoveSync.Instance != null)
-        {
-            PhotonMoveSync.Instance.SendMove(startPos, targetPos);
-        }
-        else
-        {
-            TurnManager.Instance.SwitchTurn();
-        }
-
-        TurnManager.Instance.EvaluateGameState();
-        ClearSelection();
-    }
-
-    IEnumerator AnimateMove(Piece piece, Vector2Int targetPos)
-    {
-        RectTransform pieceRT = piece.GetComponent<RectTransform>();
-        RectTransform targetTileRT =
-            BoardManager.Instance.GetTileAt(targetPos.x, targetPos.y)
-            .GetComponent<RectTransform>();
-
-        // Animate move
-        yield return StartCoroutine(
-            PieceAnimator.MoveTo(pieceRT, targetTileRT)
+        validMoves = moveGenerator.GetLegalMoves(
+            piece,
+            BoardManager.Instance.BoardState
         );
 
-        // Re-parent AFTER animation
-        piece.transform.SetParent(targetTileRT);
-        pieceRT.anchoredPosition = Vector2.zero;
-    }
-
-    IEnumerator AnimateCapture(Piece target)
-    {
-        RectTransform rt = target.GetComponent<RectTransform>();
-        yield return StartCoroutine(PieceAnimator.CaptureEffect(rt));
-        Destroy(target.gameObject);
-    }
-
-    void PromotePawn(Piece pawn)
-    {
-        pawn.pieceType = PieceType.Queen;
-        pawn.image.sprite = pawn.teamColor == TeamColor.White
-            ? PieceSpawner.Instance.whiteQueen
-            : PieceSpawner.Instance.blackQueen;
-    }
-
-    #endregion
-
-    #region HELPERS
-
-    bool IsInsideBoard(Vector2Int pos)
-    {
-        return pos.x >= 0 && pos.x < 8 && pos.y >= 0 && pos.y < 8;
-    }
-
-    void TryAddMoveOrCapture(Vector2Int pos, Piece piece)
-    {
-        if (!IsInsideBoard(pos)) return;
-
-        Piece target = BoardManager.Instance.GetPieceAt(pos.x, pos.y);
-
-        if (target == null)
-            HighlightMove(pos);
-        else if (piece.IsEnemy(target))
-            HighlightCapture(pos);
-    }
-
-    void TryAddCapture(int x, int y, Piece piece)
-    {
-        if (!IsInsideBoard(new Vector2Int(x, y))) return;
-
-        Piece target = BoardManager.Instance.GetPieceAt(x, y);
-        if (target != null && piece.IsEnemy(target))
-            HighlightCapture(new Vector2Int(x, y));
-    }
-
-    void HighlightMove(Vector2Int pos)
-    {
-        if (selectedPiece == null || !IsMoveSafe(selectedPiece, pos)) return;
-
-        validMoves.Add(pos);
-        TileHighlight.Instance.HighlightMoveTile(
-            BoardManager.Instance.GetTileAt(pos.x, pos.y)
-        );
-    }
-
-    void HighlightCapture(Vector2Int pos)
-    {
-        if (selectedPiece == null || !IsMoveSafe(selectedPiece, pos)) return;
-
-        validMoves.Add(pos);
-        TileHighlight.Instance.HighlightCaptureTile(
-            BoardManager.Instance.GetTileAt(pos.x, pos.y)
-        );
-    }
-
-    bool IsSquareUnderAttack(Vector2Int square, TeamColor byTeam)
-    {
-        for (int x = 0; x < 8; x++)
+        foreach (Vector2Int pos in validMoves)
         {
-            for (int y = 0; y < 8; y++)
-            {
-                Piece p = BoardManager.Instance.GetPieceAt(x, y);
-                if (p == null || p.teamColor != byTeam)
-                    continue;
+            Tile tile = BoardManager.Instance.GetTileAt(pos.x, pos.y);
+            if (tile == null) continue;
 
-                if (CanPieceAttackSquare(p, square))
-                    return true;
+            if (BoardManager.Instance.GetPieceAt(pos.x, pos.y) == null)
+            {
+                TileHighlight.Instance.HighlightMoveTile(tile);
+            }
+            else
+            {
+                TileHighlight.Instance.HighlightCaptureTile(tile);
             }
         }
-        return false;
     }
 
-    bool CanPieceAttackSquare(Piece piece, Vector2Int target)
-    {
-        Vector2Int from = piece.boardPosition;
-
-        switch (piece.pieceType)
-        {
-            case PieceType.Pawn:
-                int dir = piece.teamColor == TeamColor.White ? 1 : -1;
-                return target == from + new Vector2Int(1, dir) ||
-                       target == from + new Vector2Int(-1, dir);
-
-            case PieceType.Knight:
-                Vector2Int[] knightMoves =
-                {
-                    new Vector2Int(1,2), new Vector2Int(2,1),
-                    new Vector2Int(-1,2), new Vector2Int(-2,1),
-                    new Vector2Int(1,-2), new Vector2Int(2,-1),
-                    new Vector2Int(-1,-2), new Vector2Int(-2,-1)
-                };
-                foreach (var m in knightMoves)
-                    if (from + m == target) return true;
-                return false;
-
-            case PieceType.Bishop:
-                return IsSlidingAttack(from, target,
-                    new Vector2Int(1, 1), new Vector2Int(1, -1),
-                    new Vector2Int(-1, 1), new Vector2Int(-1, -1));
-
-            case PieceType.Rook:
-                return IsSlidingAttack(from, target,
-                    Vector2Int.up, Vector2Int.down,
-                    Vector2Int.left, Vector2Int.right);
-
-            case PieceType.Queen:
-                return IsSlidingAttack(from, target,
-                    Vector2Int.up, Vector2Int.down,
-                    Vector2Int.left, Vector2Int.right,
-                    new Vector2Int(1, 1), new Vector2Int(1, -1),
-                    new Vector2Int(-1, 1), new Vector2Int(-1, -1));
-
-            case PieceType.King:
-                return Mathf.Abs(from.x - target.x) <= 1 &&
-                       Mathf.Abs(from.y - target.y) <= 1;
-        }
-
-        return false;
-    }
-
-    bool IsSlidingAttack(Vector2Int from, Vector2Int target, params Vector2Int[] dirs)
-    {
-        foreach (var dir in dirs)
-        {
-            Vector2Int pos = from;
-            while (true)
-            {
-                pos += dir;
-                if (!IsInsideBoard(pos)) break;
-
-                Piece block = BoardManager.Instance.GetPieceAt(pos.x, pos.y);
-                if (pos == target) return true;
-                if (block != null) break;
-            }
-        }
-        return false;
-    }
-
-    bool IsMoveSafe(Piece piece, Vector2Int target)
-    {
-        Vector2Int start = piece.boardPosition;
-        Piece captured = BoardManager.Instance.GetPieceAt(target.x, target.y);
-
-        // simulate
-        BoardManager.Instance.SetPieceAt(start.x, start.y, null);
-        BoardManager.Instance.SetPieceAt(target.x, target.y, piece);
-        piece.boardPosition = target;
-
-        Vector2Int kingPos = piece.pieceType == PieceType.King
-            ? target
-            : BoardManager.Instance.GetKingPosition(piece.teamColor);
-
-        bool inCheck = IsSquareUnderAttack(
-            kingPos,
-            piece.teamColor == TeamColor.White ? TeamColor.Black : TeamColor.White
-        );
-
-        // revert
-        piece.boardPosition = start;
-        BoardManager.Instance.SetPieceAt(start.x, start.y, piece);
-        BoardManager.Instance.SetPieceAt(target.x, target.y, captured);
-
-        return !inCheck;
-    }
-
-    public bool HasAnyLegalMove(TeamColor team)
-    {
-        for (int x = 0; x < 8; x++)
-        {
-            for (int y = 0; y < 8; y++)
-            {
-                Piece piece = BoardManager.Instance.GetPieceAt(x, y);
-                if (piece == null || piece.teamColor != team)
-                    continue;
-
-                selectedPiece = piece;
-                validMoves.Clear();
-
-                ShowPossibleMoves(piece);
-
-                if (validMoves.Count > 0)
-                {
-                    ClearSelection();
-                    return true;
-                }
-            }
-        }
-
-        ClearSelection();
-        return false;
-    }
-
-    public bool IsKingInCheck(TeamColor team)
-    {
-        Vector2Int kingPos = BoardManager.Instance.GetKingPosition(team);
-        TeamColor enemy = team == TeamColor.White ? TeamColor.Black : TeamColor.White;
-
-        return IsSquareUnderAttack(kingPos, enemy);
-    }
-
-    void TryCastling(Piece king)
-    {
-        if (king.hasMoved) return;
-        if (IsKingInCheck(king.teamColor)) return;
-
-        int y = king.boardPosition.y;
-
-        TryCastleSide(king, 7, y, 5, 6); // King side
-        TryCastleSide(king, 0, y, 3, 2); // Queen side
-    }
-
-    void TryCastleSide(Piece king, int rookX, int y, int passX, int targetX)
-    {
-        Piece rook = BoardManager.Instance.GetPieceAt(rookX, y);
-        if (rook == null || rook.hasMoved || rook.pieceType != PieceType.Rook)
-            return;
-
-        int dir = targetX > king.boardPosition.x ? 1 : -1;
-
-        // Path clear
-        for (int x = king.boardPosition.x + dir; x != rookX; x += dir)
-            if (BoardManager.Instance.GetPieceAt(x, y) != null)
-                return;
-
-        // Squares not under attack
-        for (int x = king.boardPosition.x; x != targetX + dir; x += dir)
-        {
-            if (IsSquareUnderAttack(new Vector2Int(x, y),
-                king.teamColor == TeamColor.White ? TeamColor.Black : TeamColor.White))
-                return;
-        }
-
-        HighlightMove(new Vector2Int(targetX, y));
-    }
+    // =====================================================
+    // UTILITIES
+    // =====================================================
 
     void ClearSelection()
     {
@@ -735,20 +638,49 @@ public class SelectionManager : Singleton<SelectionManager>
         ClearSelection();
     }
 
-    public void ExecuteMoveExternally(Piece piece, Vector2Int targetPos)
-    {
-        ExecuteMove(piece, targetPos);
-    }
+    // =====================================================
+    // USED BY TurnManager (TEMP – Phase 4 will move this)
+    // =====================================================
 
-    #endregion
+    public bool HasAnyLegalMove(TeamColor team)
+    {
+        BoardState board = BoardManager.Instance.BoardState;
+
+        for (int x = 0; x < 8; x++)
+        {
+            for (int y = 0; y < 8; y++)
+            {
+                Piece piece = board.GetPieceAt(x, y);
+                if (piece == null || piece.teamColor != team)
+                    continue;
+
+                var moves = moveGenerator.GetLegalMoves(piece, board);
+                if (moves.Count > 0)
+                    return true;
+            }
+        }
+
+        return false;
+    }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\Gameplay\TurnManager.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Gameplay\TurnManager.cs
+------------------------------------------------------------
 using UnityEngine;
 
 public class TurnManager : Singleton<TurnManager>
 {
     public TeamColor currentTurn = TeamColor.White;
+
+    private IChessRules rules;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        rules = new ChessRules();
+    }
 
     public bool IsMyTurn(TeamColor team)
     {
@@ -760,6 +692,8 @@ public class TurnManager : Singleton<TurnManager>
         currentTurn = currentTurn == TeamColor.White
             ? TeamColor.Black
             : TeamColor.White;
+
+        UIManager.Instance.UpdateTurnUI(currentTurn);
     }
 
     public void ResetTurn()
@@ -774,7 +708,10 @@ public class TurnManager : Singleton<TurnManager>
         SelectionManager sm = SelectionManager.Instance;
 
         bool hasMoves = sm.HasAnyLegalMove(current);
-        bool inCheck = sm.IsKingInCheck(current);
+        bool inCheck = rules.IsKingInCheck(
+            current,
+            BoardManager.Instance.BoardState
+        );
 
         if (!hasMoves)
         {
@@ -782,8 +719,8 @@ public class TurnManager : Singleton<TurnManager>
             {
                 CommonPopupController.Instance.ShowResult(
                     current == TeamColor.White
-                    ? "Black Wins"
-                    : "White Wins"
+                        ? "Black Wins"
+                        : "White Wins"
                 );
             }
             else
@@ -803,7 +740,9 @@ public class TurnManager : Singleton<TurnManager>
 }
 
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\Managers\ChessClock.cs
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Managers\ChessClock.cs
+------------------------------------------------------------
 using UnityEngine;
 using TMPro;
 
@@ -893,7 +832,10 @@ public class ChessClock : MonoBehaviour
     }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\Managers\GameManager.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Managers\GameManager.cs
+------------------------------------------------------------
 using UnityEngine;
 
 public class GameManager : Singleton<GameManager>
@@ -921,7 +863,61 @@ public class GameManager : Singleton<GameManager>
         Debug.Log("Game Restarted");
     }
 }
-E:\Unity\Simple Chess\Assets\Scripts\Game\Pieces\Piece.cs
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Modes\IGameMode.cs
+------------------------------------------------------------
+using UnityEngine;
+
+public interface IGameMode
+{
+    bool IsMyTurn(TeamColor team);
+    void OnMoveExecuted(Vector2Int from, Vector2Int to);
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Modes\OfflineGameMode.cs
+------------------------------------------------------------
+using UnityEngine;
+
+public class OfflineGameMode : IGameMode
+{
+    public bool IsMyTurn(TeamColor team)
+    {
+        return TurnManager.Instance.IsMyTurn(team);
+    }
+
+    public void OnMoveExecuted(Vector2Int from, Vector2Int to)
+    {
+        TurnManager.Instance.SwitchTurn();
+    }
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Modes\OnlineGameMode.cs
+------------------------------------------------------------
+using UnityEngine;
+
+public class OnlineGameMode : IGameMode
+{
+    public bool IsMyTurn(TeamColor team)
+    {
+        return OnlineTurnManager.Instance.IsMyTurn();
+    }
+
+    public void OnMoveExecuted(Vector2Int from, Vector2Int to)
+    {
+        PhotonMoveSync.Instance.SendMove(from, to);
+    }
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Pieces\Piece.cs
+------------------------------------------------------------
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -994,7 +990,11 @@ public class Piece : MonoBehaviour, IPointerClickHandler
     }
 
 }
-E:\Unity\Simple Chess\Assets\Scripts\Game\Pieces\PieceAnimator.cs
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Pieces\PieceAnimator.cs
+------------------------------------------------------------
 using System.Collections;
 using UnityEngine;
 
@@ -1030,7 +1030,10 @@ public class PieceAnimator
     }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\Pieces\PieceSpawner.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Pieces\PieceSpawner.cs
+------------------------------------------------------------
 using UnityEngine;
 
 public class PieceSpawner : Singleton<PieceSpawner>
@@ -1154,7 +1157,598 @@ public class PieceSpawner : Singleton<PieceSpawner>
     }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\UI\CommonPopupController.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Pieces\PieceView.cs
+------------------------------------------------------------
+EMPTY FILE (0 lines)
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Rules\SpecialMoves\CastlingRule.cs
+------------------------------------------------------------
+using UnityEngine;
+
+public class CastlingRule
+{
+    private readonly CheckEvaluator check;
+
+    public CastlingRule(CheckEvaluator evaluator)
+    {
+        check = evaluator;
+    }
+
+    public void Apply(MoveData move, BoardState board)
+    {
+        if (move.piece.pieceType != PieceType.King)
+            return;
+
+        if (Mathf.Abs(move.from.x - move.to.x) != 2)
+            return;
+
+        move.isCastling = true;
+
+        int y = move.from.y;
+        bool kingSide = move.to.x > move.from.x;
+
+        move.rookFrom = new Vector2Int(kingSide ? 7 : 0, y);
+        move.rookTo = new Vector2Int(
+            kingSide ? move.to.x - 1 : move.to.x + 1,
+            y
+        );
+    }
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Rules\SpecialMoves\EnPassantRule.cs
+------------------------------------------------------------
+using UnityEngine;
+
+public class EnPassantRule
+{
+    public void Apply(MoveData move, BoardState board)
+    {
+        if (move.piece.pieceType != PieceType.Pawn)
+            return;
+
+        if (board.GetPieceAt(move.to.x, move.to.y) != null)
+            return;
+
+        int dir = move.piece.teamColor == TeamColor.White ? -1 : 1;
+
+        Piece pawn =
+            board.GetPieceAt(move.to.x, move.to.y + dir);
+
+        if (pawn == null ||
+            pawn.pieceType != PieceType.Pawn ||
+            !pawn.justMovedTwoSteps)
+            return;
+
+        move.isEnPassant = true;
+        move.isCapture = true;
+        move.capturedPiecePos =
+            new Vector2Int(move.to.x, move.to.y + dir);
+    }
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Rules\SpecialMoves\PromotionRule.cs
+------------------------------------------------------------
+public class PromotionRule
+{
+    public void Apply(MoveData move, BoardState board)
+    {
+        if (move.piece.pieceType != PieceType.Pawn)
+            return;
+
+        if (move.to.y == 0 || move.to.y == 7)
+        {
+            move.isPromotion = true;
+        }
+    }
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Rules\CheckEvaluator.cs
+------------------------------------------------------------
+using UnityEngine;
+
+public class CheckEvaluator
+{
+    public bool IsKingInCheck(TeamColor team, BoardState board)
+    {
+        Vector2Int kingPos = board.GetKingPosition(team);
+        TeamColor enemy = team == TeamColor.White ? TeamColor.Black : TeamColor.White;
+
+        return IsSquareUnderAttack(kingPos, enemy, board);
+    }
+
+    public bool IsSquareUnderAttack(
+        Vector2Int square,
+        TeamColor byTeam,
+        BoardState board
+    )
+    {
+        for (int x = 0; x < 8; x++)
+        {
+            for (int y = 0; y < 8; y++)
+            {
+                Piece p = board.GetPieceAt(x, y);
+                if (p == null || p.teamColor != byTeam)
+                    continue;
+
+                if (CanPieceAttackSquare(p, square, board))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    public bool IsMoveSafe(
+        Piece piece,
+        Vector2Int target,
+        BoardState board
+    )
+    {
+        Vector2Int start = piece.boardPosition;
+        Piece captured = board.GetPieceAt(target.x, target.y);
+
+        // simulate
+        board.SetPieceAt(start.x, start.y, null);
+        board.SetPieceAt(target.x, target.y, piece);
+        piece.boardPosition = target;
+
+        Vector2Int kingPos =
+            piece.pieceType == PieceType.King
+            ? target
+            : board.GetKingPosition(piece.teamColor);
+
+        bool inCheck = IsSquareUnderAttack(
+            kingPos,
+            piece.teamColor == TeamColor.White ? TeamColor.Black : TeamColor.White,
+            board
+        );
+
+        // revert
+        piece.boardPosition = start;
+        board.SetPieceAt(start.x, start.y, piece);
+        board.SetPieceAt(target.x, target.y, captured);
+
+        return !inCheck;
+    }
+
+    // ================= INTERNAL =================
+
+    bool CanPieceAttackSquare(
+        Piece piece,
+        Vector2Int target,
+        BoardState board
+    )
+    {
+        Vector2Int from = piece.boardPosition;
+
+        switch (piece.pieceType)
+        {
+            case PieceType.Pawn:
+                int dir = piece.teamColor == TeamColor.White ? 1 : -1;
+                return target == from + new Vector2Int(1, dir) ||
+                       target == from + new Vector2Int(-1, dir);
+
+            case PieceType.Knight:
+                Vector2Int[] knightMoves =
+                {
+                    new Vector2Int(1,2), new Vector2Int(2,1),
+                    new Vector2Int(-1,2), new Vector2Int(-2,1),
+                    new Vector2Int(1,-2), new Vector2Int(2,-1),
+                    new Vector2Int(-1,-2), new Vector2Int(-2,-1)
+                };
+                foreach (var m in knightMoves)
+                    if (from + m == target) return true;
+                return false;
+
+            case PieceType.Bishop:
+                return IsSlidingAttack(from, target, board,
+                    new Vector2Int(1, 1), new Vector2Int(1, -1),
+                    new Vector2Int(-1, 1), new Vector2Int(-1, -1));
+
+            case PieceType.Rook:
+                return IsSlidingAttack(from, target, board,
+                    Vector2Int.up, Vector2Int.down,
+                    Vector2Int.left, Vector2Int.right);
+
+            case PieceType.Queen:
+                return IsSlidingAttack(from, target, board,
+                    Vector2Int.up, Vector2Int.down,
+                    Vector2Int.left, Vector2Int.right,
+                    new Vector2Int(1, 1), new Vector2Int(1, -1),
+                    new Vector2Int(-1, 1), new Vector2Int(-1, -1));
+
+            case PieceType.King:
+                return Mathf.Abs(from.x - target.x) <= 1 &&
+                       Mathf.Abs(from.y - target.y) <= 1;
+        }
+
+        return false;
+    }
+
+    bool IsSlidingAttack(
+        Vector2Int from,
+        Vector2Int target,
+        BoardState board,
+        params Vector2Int[] dirs
+    )
+    {
+        foreach (var dir in dirs)
+        {
+            Vector2Int pos = from;
+            while (true)
+            {
+                pos += dir;
+                if (!IsInsideBoard(pos)) break;
+
+                Piece block = board.GetPieceAt(pos.x, pos.y);
+                if (pos == target) return true;
+                if (block != null) break;
+            }
+        }
+        return false;
+    }
+
+    bool IsInsideBoard(Vector2Int pos)
+    {
+        return pos.x >= 0 && pos.x < 8 && pos.y >= 0 && pos.y < 8;
+    }
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Rules\ChessRules.cs
+------------------------------------------------------------
+using UnityEngine;
+
+public class ChessRules : IChessRules
+{
+    private readonly CastlingRule castlingRule;
+    private readonly EnPassantRule enPassantRule;
+    private readonly PromotionRule promotionRule;
+
+    private readonly CheckEvaluator checkEvaluator;
+
+    public ChessRules()
+    {
+        checkEvaluator = new CheckEvaluator();
+        castlingRule = new CastlingRule(checkEvaluator);
+        enPassantRule = new EnPassantRule();
+        promotionRule = new PromotionRule();
+    }
+
+
+    public bool IsSquareUnderAttack(
+        Vector2Int square,
+        TeamColor byTeam,
+        BoardState board
+    )
+    {
+        return checkEvaluator.IsSquareUnderAttack(square, byTeam, board);
+    }
+
+    public bool IsMoveSafe(
+        Piece piece,
+        Vector2Int target,
+        BoardState board
+    )
+    {
+        return checkEvaluator.IsMoveSafe(piece, target, board);
+    }
+
+    public bool IsKingInCheck(
+        TeamColor team,
+        BoardState board
+    )
+    {
+        return checkEvaluator.IsKingInCheck(team, board);
+    }
+    public MoveData CreateMove(
+    Piece piece,
+    Vector2Int target,
+    BoardState board
+)
+    {
+        MoveData move = new MoveData
+        {
+            piece = piece,
+            from = piece.boardPosition,
+            to = target
+        };
+
+        Piece targetPiece = board.GetPieceAt(target.x, target.y);
+
+        // Normal capture
+        if (targetPiece != null && piece.IsEnemy(targetPiece))
+        {
+            move.isCapture = true;
+            move.capturedPiecePos = target;
+        }
+
+        // En Passant
+        enPassantRule.Apply(move, board);
+
+        // Castling
+        castlingRule.Apply(move, board);
+
+        // Promotion
+        promotionRule.Apply(move, board);
+
+        return move;
+    }
+
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Rules\IChessRules.cs
+------------------------------------------------------------
+using UnityEngine;
+
+public interface IChessRules
+{
+    bool IsSquareUnderAttack(
+        Vector2Int square,
+        TeamColor byTeam,
+        BoardState board
+    );
+
+    bool IsMoveSafe(
+        Piece piece,
+        Vector2Int target,
+        BoardState board
+    );
+
+    bool IsKingInCheck(
+        TeamColor team,
+        BoardState board
+    );
+    MoveData CreateMove(
+            Piece piece,
+            Vector2Int target,
+            BoardState board
+        );
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Rules\MoveData.cs
+------------------------------------------------------------
+using UnityEngine;
+
+public class MoveData
+{
+    public Piece piece;
+    public Vector2Int from;
+    public Vector2Int to;
+
+    // Special flags
+    public bool isCapture;
+    public bool isEnPassant;
+    public bool isCastling;
+    public bool isPromotion;
+
+    // Extra data
+    public Vector2Int capturedPiecePos;
+    public Vector2Int rookFrom;
+    public Vector2Int rookTo;
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\Rules\MoveGenerator.cs
+------------------------------------------------------------
+using System.Collections.Generic;
+using UnityEngine;
+
+public class MoveGenerator
+{
+    private readonly IChessRules rules;
+
+    public MoveGenerator(IChessRules rules)
+    {
+        this.rules = rules;
+    }
+
+    public HashSet<Vector2Int> GetLegalMoves(
+        Piece piece,
+        BoardState board
+    )
+    {
+        HashSet<Vector2Int> moves = new HashSet<Vector2Int>();
+
+        switch (piece.pieceType)
+        {
+            case PieceType.Pawn:
+                GeneratePawnMoves(piece, board, moves);
+                break;
+
+            case PieceType.Rook:
+                GenerateLinear(piece, board, moves,
+                    Vector2Int.up, Vector2Int.down,
+                    Vector2Int.left, Vector2Int.right);
+                break;
+
+            case PieceType.Bishop:
+                GenerateLinear(piece, board, moves,
+                    new Vector2Int(1, 1), new Vector2Int(1, -1),
+                    new Vector2Int(-1, 1), new Vector2Int(-1, -1));
+                break;
+
+            case PieceType.Queen:
+                GenerateLinear(piece, board, moves,
+                    Vector2Int.up, Vector2Int.down,
+                    Vector2Int.left, Vector2Int.right,
+                    new Vector2Int(1, 1), new Vector2Int(1, -1),
+                    new Vector2Int(-1, 1), new Vector2Int(-1, -1));
+                break;
+
+            case PieceType.Knight:
+                GenerateKnight(piece, board, moves);
+                break;
+
+            case PieceType.King:
+                GenerateKing(piece, board, moves);
+                break;
+        }
+
+        return moves;
+    }
+
+    // ================= PAWN =================
+
+    void GeneratePawnMoves(
+        Piece piece,
+        BoardState board,
+        HashSet<Vector2Int> moves
+    )
+    {
+        int dir = piece.teamColor == TeamColor.White ? 1 : -1;
+        int startRow = piece.teamColor == TeamColor.White ? 1 : 6;
+
+        int x = piece.boardPosition.x;
+        int y = piece.boardPosition.y;
+
+        // Forward
+        if (board.GetPieceAt(x, y + dir) == null)
+        {
+            TryAdd(piece, board, moves, new Vector2Int(x, y + dir));
+
+            if (y == startRow &&
+                board.GetPieceAt(x, y + dir * 2) == null)
+            {
+                TryAdd(piece, board, moves,
+                    new Vector2Int(x, y + dir * 2));
+            }
+        }
+
+        // Capture
+        TryCapture(piece, board, moves, x - 1, y + dir);
+        TryCapture(piece, board, moves, x + 1, y + dir);
+    }
+
+    // ================= LINEAR =================
+
+    void GenerateLinear(
+        Piece piece,
+        BoardState board,
+        HashSet<Vector2Int> moves,
+        params Vector2Int[] dirs
+    )
+    {
+        foreach (var dir in dirs)
+        {
+            Vector2Int pos = piece.boardPosition;
+
+            while (true)
+            {
+                pos += dir;
+                if (!Inside(pos)) break;
+
+                Piece target = board.GetPieceAt(pos.x, pos.y);
+
+                if (target == null)
+                {
+                    TryAdd(piece, board, moves, pos);
+                }
+                else
+                {
+                    if (piece.IsEnemy(target))
+                        TryAdd(piece, board, moves, pos);
+                    break;
+                }
+            }
+        }
+    }
+
+    // ================= KNIGHT =================
+
+    void GenerateKnight(
+        Piece piece,
+        BoardState board,
+        HashSet<Vector2Int> moves
+    )
+    {
+        Vector2Int[] offsets =
+        {
+            new Vector2Int(1,2), new Vector2Int(2,1),
+            new Vector2Int(-1,2), new Vector2Int(-2,1),
+            new Vector2Int(1,-2), new Vector2Int(2,-1),
+            new Vector2Int(-1,-2), new Vector2Int(-2,-1)
+        };
+
+        foreach (var o in offsets)
+            TryAdd(piece, board, moves, piece.boardPosition + o);
+    }
+
+    // ================= KING =================
+
+    void GenerateKing(
+        Piece piece,
+        BoardState board,
+        HashSet<Vector2Int> moves
+    )
+    {
+        for (int x = -1; x <= 1; x++)
+            for (int y = -1; y <= 1; y++)
+            {
+                if (x == 0 && y == 0) continue;
+                TryAdd(piece, board, moves,
+                    piece.boardPosition + new Vector2Int(x, y));
+            }
+    }
+
+    // ================= HELPERS =================
+
+    void TryAdd(
+        Piece piece,
+        BoardState board,
+        HashSet<Vector2Int> moves,
+        Vector2Int pos
+    )
+    {
+        if (!Inside(pos)) return;
+
+        Piece target = board.GetPieceAt(pos.x, pos.y);
+        if (target != null && !piece.IsEnemy(target))
+            return;
+
+        if (rules.IsMoveSafe(piece, pos, board))
+            moves.Add(pos);
+    }
+
+    void TryCapture(
+        Piece piece,
+        BoardState board,
+        HashSet<Vector2Int> moves,
+        int x, int y
+    )
+    {
+        if (!Inside(new Vector2Int(x, y))) return;
+
+        Piece target = board.GetPieceAt(x, y);
+        if (target != null && piece.IsEnemy(target))
+            TryAdd(piece, board, moves, new Vector2Int(x, y));
+    }
+
+    bool Inside(Vector2Int pos)
+    {
+        return pos.x >= 0 && pos.x < 8 && pos.y >= 0 && pos.y < 8;
+    }
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\UI\CommonPopupController.cs
+------------------------------------------------------------
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -1284,7 +1878,10 @@ public class CommonPopupController : Singleton<CommonPopupController>
     }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\UI\OnlineUIBinder.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\UI\OnlineUIBinder.cs
+------------------------------------------------------------
 using UnityEngine;
 using TMPro;
 
@@ -1306,7 +1903,10 @@ public class OnlineUIBinder : MonoBehaviour
     }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\UI\TileHighlight.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\UI\TileHighlight.cs
+------------------------------------------------------------
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -1380,7 +1980,10 @@ public class TileHighlight : Singleton<TileHighlight>
     }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\UI\UIButtonStyler.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\UI\UIButtonStyler.cs
+------------------------------------------------------------
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -1417,7 +2020,10 @@ public class UIButtonStyler : MonoBehaviour
     }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Game\UI\UIManager.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Game\UI\UIManager.cs
+------------------------------------------------------------
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -1578,7 +2184,10 @@ public class UIManager : Singleton<UIManager>
 
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Networking\OnlineGameManager.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Networking\OnlineGameManager.cs
+------------------------------------------------------------
 using Photon.Pun;
 using UnityEngine;
 
@@ -1588,6 +2197,7 @@ public class OnlineGameManager : MonoBehaviour
     {
         // Decide white / black as soon as scene loads
         PhotonPlayerData.DecideSide();
+
     }
 
     void Start()
@@ -1598,7 +2208,10 @@ public class OnlineGameManager : MonoBehaviour
     }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Networking\OnlineTurnManager.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Networking\OnlineTurnManager.cs
+------------------------------------------------------------
 using Photon.Pun;
 using UnityEngine;
 
@@ -1681,7 +2294,10 @@ public class OnlineTurnManager : MonoBehaviourPun
     }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Networking\PhotonManager.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Networking\PhotonManager.cs
+------------------------------------------------------------
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
@@ -1761,7 +2377,154 @@ public class PhotonManager : Singleton<PhotonManager>, IConnectionCallbacks, ILo
     public void OnLobbyStatisticsUpdate(System.Collections.Generic.List<TypedLobbyInfo> lobbyStatistics) { }
 }
 
-E:\Unity\Simple Chess\Assets\Scripts\Networking\PhotonRoomManager.cs
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Networking\PhotonMoveSync.cs
+------------------------------------------------------------
+using Photon.Pun;
+using UnityEngine;
+
+public class PhotonMoveSync : MonoBehaviourPun
+{
+    public static PhotonMoveSync Instance;
+
+    void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    // =========================================================
+    // CALLED BY LOCAL PLAYER AFTER A LEGAL MOVE
+    // =========================================================
+    public void SendMove(Vector2Int from, Vector2Int to)
+    {
+        // Only current-turn player can send
+        if (!OnlineTurnManager.Instance.IsMyTurn())
+            return;
+
+        photonView.RPC(
+            nameof(RPC_ReceiveMove),
+            RpcTarget.Others,
+            from.x, from.y,
+            to.x, to.y
+        );
+
+        // End local turn AFTER sending
+        OnlineTurnManager.Instance.EndTurn();
+    }
+
+    // =========================================================
+    // RECEIVED BY REMOTE PLAYER
+    // =========================================================
+    [PunRPC]
+    void RPC_ReceiveMove(int fromX, int fromY, int toX, int toY)
+    {
+        ApplyRemoteMove(
+            new Vector2Int(fromX, fromY),
+            new Vector2Int(toX, toY)
+        );
+
+        // End turn for remote side
+        OnlineTurnManager.Instance.EndTurn();
+    }
+
+    // =========================================================
+    // APPLY MOVE WITHOUT RE-SENDING
+    // =========================================================
+    void ApplyRemoteMove(Vector2Int from, Vector2Int to)
+    {
+        Piece piece =
+            BoardManager.Instance.GetPieceAt(from.x, from.y);
+
+        if (piece == null)
+            return;
+
+        MoveExecutor.Instance.ExecuteMove(
+            piece,
+            to,
+            true
+        );
+    }
+
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Networking\PhotonPlayerData.cs
+------------------------------------------------------------
+using Photon.Pun;
+using Photon.Realtime;
+
+public enum PlayerSide
+{
+    White,
+    Black
+}
+
+public static class PhotonPlayerData
+{
+    public static bool IsHost { get; private set; }
+    public static PlayerSide LocalSide { get; private set; }
+
+    public static void SetHost()
+    {
+        IsHost = true;
+    }
+
+    public static void SetJoiner()
+    {
+        IsHost = false;
+    }
+
+    public static void Reset()
+    {
+        IsHost = false;
+        LocalSide = PlayerSide.White;
+    }
+
+    // ---------- SIDE DECISION ----------
+
+    public static void DecideSide()
+    {
+        LocalSide = PhotonNetwork.IsMasterClient
+            ? PlayerSide.White
+            : PlayerSide.Black;
+    }
+
+    // ---------- HELPERS ----------
+
+    public static string LocalNickName =>
+        PhotonNetwork.NickName;
+
+    public static string WhitePlayerName =>
+        PhotonNetwork.IsMasterClient
+            ? PhotonNetwork.MasterClient.NickName
+            : GetOtherPlayer().NickName;
+
+    public static string BlackPlayerName =>
+        PhotonNetwork.IsMasterClient
+            ? GetOtherPlayer().NickName
+            : PhotonNetwork.MasterClient.NickName;
+
+    static Player GetOtherPlayer()
+    {
+        Player[] players = PhotonNetwork.PlayerList;
+        return players[0] == PhotonNetwork.MasterClient
+            ? players[1]
+            : players[0];
+    }
+}
+
+
+------------------------------------------------------------
+FILE: e:\Unity\Simple Chess\Assets\Scripts\Networking\PhotonRoomManager.cs
+------------------------------------------------------------
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
@@ -1876,139 +2639,3 @@ public class PhotonRoomManager : MonoBehaviourPunCallbacks
         return code;
     }
 }
-
-E:\Unity\Simple Chess\Assets\Scripts\Networking\PhotonPlayerData.cs
-using Photon.Pun;
-using Photon.Realtime;
-
-public enum PlayerSide
-{
-    White,
-    Black
-}
-
-public static class PhotonPlayerData
-{
-    public static bool IsHost { get; private set; }
-    public static PlayerSide LocalSide { get; private set; }
-
-    public static void SetHost()
-    {
-        IsHost = true;
-    }
-
-    public static void SetJoiner()
-    {
-        IsHost = false;
-    }
-
-    public static void Reset()
-    {
-        IsHost = false;
-        LocalSide = PlayerSide.White;
-    }
-
-    // ---------- SIDE DECISION ----------
-
-    public static void DecideSide()
-    {
-        LocalSide = PhotonNetwork.IsMasterClient
-            ? PlayerSide.White
-            : PlayerSide.Black;
-    }
-
-    // ---------- HELPERS ----------
-
-    public static string LocalNickName =>
-        PhotonNetwork.NickName;
-
-    public static string WhitePlayerName =>
-        PhotonNetwork.IsMasterClient
-            ? PhotonNetwork.MasterClient.NickName
-            : GetOtherPlayer().NickName;
-
-    public static string BlackPlayerName =>
-        PhotonNetwork.IsMasterClient
-            ? GetOtherPlayer().NickName
-            : PhotonNetwork.MasterClient.NickName;
-
-    static Player GetOtherPlayer()
-    {
-        Player[] players = PhotonNetwork.PlayerList;
-        return players[0] == PhotonNetwork.MasterClient
-            ? players[1]
-            : players[0];
-    }
-}
-
-E:\Unity\Simple Chess\Assets\Scripts\Networking\PhotonMoveSync.cs
-using Photon.Pun;
-using UnityEngine;
-
-public class PhotonMoveSync : MonoBehaviourPun
-{
-    public static PhotonMoveSync Instance;
-
-    void Awake()
-    {
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        Instance = this;
-    }
-
-    // =========================================================
-    // CALLED BY LOCAL PLAYER AFTER A LEGAL MOVE
-    // =========================================================
-    public void SendMove(Vector2Int from, Vector2Int to)
-    {
-        // Only current-turn player can send
-        if (!OnlineTurnManager.Instance.IsMyTurn())
-            return;
-
-        photonView.RPC(
-            nameof(RPC_ReceiveMove),
-            RpcTarget.Others,
-            from.x, from.y,
-            to.x, to.y
-        );
-
-        // End local turn AFTER sending
-        OnlineTurnManager.Instance.EndTurn();
-    }
-
-    // =========================================================
-    // RECEIVED BY REMOTE PLAYER
-    // =========================================================
-    [PunRPC]
-    void RPC_ReceiveMove(int fromX, int fromY, int toX, int toY)
-    {
-        ApplyRemoteMove(
-            new Vector2Int(fromX, fromY),
-            new Vector2Int(toX, toY)
-        );
-
-        // End turn for remote side
-        OnlineTurnManager.Instance.EndTurn();
-    }
-
-    // =========================================================
-    // APPLY MOVE WITHOUT RE-SENDING
-    // =========================================================
-    void ApplyRemoteMove(Vector2Int from, Vector2Int to)
-    {
-        Piece piece = BoardManager.Instance.GetPieceAt(from.x, from.y);
-        if (piece == null)
-            return;
-
-        // Direct execution path (bypasses selection clicks)
-        SelectionManager.Instance.ExecuteMoveExternally(piece, to);
-    }
-}
-
-
-
-phle to ye bta kitna ho gya apna or next step kya hai  or kon kon si script kam aayegi OnlineGaming ke liye or kis kis script me code likha jayega

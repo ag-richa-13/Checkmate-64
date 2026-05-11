@@ -14,26 +14,17 @@ public class OnlineTurnManager : MonoBehaviourPun
             Destroy(gameObject);
             return;
         }
-
         Instance = this;
     }
 
     void Start()
     {
-        InitializeTurn();
+        if (PhotonNetwork.IsMasterClient)
+        {
+            CurrentTurn = TeamColor.White;
+            photonView.RPC(nameof(RPC_SetTurn), RpcTarget.All, (int)CurrentTurn);
+        }
     }
-
-    // ================= INIT =================
-
-    void InitializeTurn()
-    {
-        // White always starts
-        CurrentTurn = TeamColor.White;
-
-        UpdateTurnUI();
-    }
-
-    // ================= AUTHORITY =================
 
     public bool IsMyTurn()
     {
@@ -45,15 +36,13 @@ public class OnlineTurnManager : MonoBehaviourPun
         return CurrentTurn == myColor;
     }
 
-    // ================= TURN SWITCH =================
-
-    public void EndTurn()
+    [PunRPC]
+    void RPC_SetTurn(int turn)
     {
-        // Only the player who made the move can request turn end
-        if (!IsMyTurn())
-            return;
+        CurrentTurn = (TeamColor)turn;
 
-        photonView.RPC(nameof(RPC_SwitchTurn), RpcTarget.All);
+        if (UIManager.Instance != null)
+            UIManager.Instance.UpdateTurnUI(CurrentTurn);
     }
 
     [PunRPC]
@@ -64,18 +53,16 @@ public class OnlineTurnManager : MonoBehaviourPun
                 ? TeamColor.Black
                 : TeamColor.White;
 
-        UpdateTurnUI();
-    }
-
-    // ================= UI =================
-
-    void UpdateTurnUI()
-    {
-        // We don't enable UIManager fully yet,
-        // but this keeps things future-safe
         if (UIManager.Instance != null)
-        {
             UIManager.Instance.UpdateTurnUI(CurrentTurn);
-        }
     }
+
+    public void RequestTurnSwitch()
+    {
+        if (!PhotonNetwork.IsMasterClient)
+            return;
+
+        photonView.RPC(nameof(RPC_SwitchTurn), RpcTarget.All);
+    }
+
 }

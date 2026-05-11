@@ -1,3 +1,74 @@
+/**************************Script Structure**************************\
+
+Assets
+└── Scripts
+    │
+    ├── Core                         // App-level core systems
+    │   ├── Singleton.cs
+    │   ├── SceneLoader.cs
+    │   └── NavigationBack.cs
+    │
+    ├── Splash                       // Splash screen only
+    │   └── SplashAnimator.cs
+    │
+    ├── Global                       // Scene-independent systems
+    │   ├── InternetChecker.cs
+    │   ├── PlayerData.cs
+    │   ├── GlobalPopupManager.cs
+    │   ├── GlobalLoaderController.cs
+    │   ├── PlayerNamePopupController.cs
+    │   └── NoInternetPopupController.cs
+    │
+    ├── MainMenu                     // Main Menu scene only
+    │   │
+    │   ├── Controllers              // Navigation & button logic
+    │   │   ├── MainMenuController.cs
+    │   │   └── FooterController.cs
+    │   │
+    │   ├── Managers                 // Menu-level state (future)
+    │   │   └── (empty for now)
+    │   │
+    │   └── UI                       // Panel & prefab UI logic
+    │       ├── HomeUIController.cs          // Home panel (Welcome text)
+    │       ├── ProfileUIController.cs       // Profile panel (Name update)
+    │       ├── LobbyPanelController.cs      // Lobby panel (Friends UI)
+    │       └── PlayerSlotUI.cs              // Player slot prefab UI
+    │
+    ├── Game                         // Offline Chess Game Scene
+    │   │
+    │   ├── Board
+    │   │   ├── BoardManager.cs
+    │   │   └── Tile.cs
+    │   │
+    │   ├── Gameplay                 // Chess rules & flow
+    │   │   ├── SelectionManager.cs
+    │   │   ├── TurnManager.cs
+    │   │   └── MatchController.cs
+    │   │
+    │   ├── Managers                 // Game-wide managers
+    │   │   ├── GameManager.cs
+    │   │   └── ChessClock.cs
+    │   │
+    │   ├── Pieces
+    │   │   ├── Piece.cs
+    │   │   ├── PieceSpawner.cs
+    │   │   └── PieceAnimator.cs
+    │   │
+    │   └── UI                       // Game UI only
+    │       ├── UIManager.cs
+    │       ├── TileHighlight.cs
+    │       ├── UIButtonStyler.cs
+    │       └── CommonPopupController.cs
+    │
+    ├── Networking                   // Multiplayer (Photon)
+    │   ├── PhotonManager.cs
+    │   ├── PhotonRoomManager.cs
+    |   ├── OnlineGameManager.cs
+    │   └── PhotonPlayerData.cs
+    │
+    └── Shared                       // Reusable utilities (future)
+        └── (SoundManager, Utils later)
+
 E:\Unity\Simple Chess\Assets\Scripts\Game\Board\BoardManager.cs
 using UnityEngine;
 
@@ -2017,3 +2088,10 @@ rules ko ek alg script me rkhte hai jo bhi game rules hai uski ek alg script ban
 
 
 aise hi jrurat pade to logic ko tod tod ke alg alg script me dalte hai jisko change krna pade usko a;g jisko sirf use krna hai change nahi krna usko alg 
+
+
+
+phle jo scripts jis folder me banegi wo bata fir code ko change krna start krenge 
+
+
+game se related scripts game folder me hi honi chahiye 

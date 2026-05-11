@@ -1,0 +1,797 @@
+
+Assets
+└── Scripts
+    │
+    ├── Core                                // App-level (non-game)
+    │   ├── Singleton.cs
+    │   ├── SceneLoader.cs
+    │   └── NavigationBack.cs
+    │
+    ├── Splash
+    │   └── SplashAnimator.cs
+    │
+    ├── Global                              // App-wide (non-game)
+    │   ├── InternetChecker.cs
+    │   ├── PlayerData.cs
+    │   ├── GlobalPopupManager.cs
+    │   ├── GlobalLoaderController.cs
+    │   ├── PlayerNamePopupController.cs
+    │   └── NoInternetPopupController.cs
+    │
+    ├── MainMenu                            // Menu-only
+    │   ├── Controllers
+    │   │   ├── MainMenuController.cs
+    │   │   └── FooterController.cs
+    │   │
+    │   ├── Managers
+    │   │   └── (future menu state)
+    │   │
+    │   └── UI
+    │       ├── HomeUIController.cs
+    │       ├── ProfileUIController.cs
+    │       ├── LobbyPanelController.cs
+    │       └── PlayerSlotUI.cs
+    │
+    ├── Game                                // 🔥 ALL GAME-RELATED CODE
+    │   │
+    │   ├── Core                            // Game-wide constants & context
+    │   │   ├── GameEnums.cs                // PieceType, TeamColor, GameResult
+    │   │   ├── GameConstants.cs            // Board size, directions, etc.
+    │   │   └── GameContext.cs              // Active mode, rules, board refs
+    │   │   └── GameSceneBootstrap.cs
+    │   │
+    │   ├── Board                           // Board + state (NO rules)
+    │   │   ├── BoardManager.cs             // Tile creation + façade
+    │   │   ├── BoardState.cs               // 8x8 piece matrix (pure C#)
+    │   │   └── Tile.cs
+    │   │
+    │   ├── Rules                           // ♟ PURE CHESS LOGIC (CORE)
+    │   │   ├── IChessRules.cs              // Interface abstraction
+    │   │   ├── ChessRules.cs               // Facade for all rules
+    │   │   ├── MoveGenerator.cs            // Legal move generation
+    │   │   ├── CheckEvaluator.cs           // Check / mate / stalemate
+    │   │   │
+    │   │   └── SpecialMoves
+    │   │       ├── CastlingRule.cs
+    │   │       ├── EnPassantRule.cs
+    │   │       └── PromotionRule.cs
+    │   │
+    │   ├── Gameplay                        // Game flow orchestration
+    │   │   ├── SelectionManager.cs         // Input → rules → execution
+    │   │   ├── MoveExecutor.cs             // Apply move to board + visuals
+    │   │   ├── TurnManager.cs              // Turn state (offline base)
+    │   │   └── MatchController.cs           // Win / draw / resign
+    │   │
+    │   ├── Modes                           // Offline vs Online glue
+    │   │   ├── IGameMode.cs
+    │   │   ├── OfflineGameMode.cs
+    │   │   └── OnlineGameMode.cs
+    │   │
+    │   ├── Pieces                          // Piece identity + visuals
+    │   │   ├── Piece.cs                    // Identity + click handler
+    │   │   ├── PieceView.cs                // Sprite & animation hooks
+    │   │   ├── PieceSpawner.cs
+    │   │   └── PieceAnimator.cs
+    │   │
+    │   ├── Managers                        // Game-wide utilities
+    │   │   ├── GameManager.cs              // Restart / reset orchestration
+    │   │   └── ChessClock.cs
+    │   │
+    │   └── UI                              // Game UI only (NO logic)
+    │       ├── UIManager.cs
+    │       ├── TileHighlight.cs
+    │       ├── UIButtonStyler.cs
+    │       ├── OnlineUIBinder.cs
+    │       └── CommonPopupController.cs
+    │
+    ├── Networking                          // Photon-only
+    │   ├── PhotonManager.cs
+    │   ├── PhotonRoomManager.cs
+    │   ├── PhotonMoveSync.cs
+    │   ├── OnlineTurnManager.cs
+    │   ├── OnlineGameManager.cs
+    │   └── PhotonPlayerData.cs
+    │
+    └── Shared                              // Future reusable utils
+        └── (SoundManager, MathUtils, etc.)
+
+
+
+
+1. OnlineGameMode.cs
+using UnityEngine;
+
+public class OnlineGameMode : IGameMode
+{
+    public bool IsMyTurn(TeamColor team)
+    {
+        if (!OnlineTurnManager.Instance.IsMyTurn())
+            return false;
+
+        TeamColor myColor =
+            PhotonPlayerData.LocalSide == PlayerSide.White
+                ? TeamColor.White
+                : TeamColor.Black;
+
+        return team == myColor;
+    }
+
+
+    public void OnMoveExecuted(Vector2Int from, Vector2Int to)
+    {
+        // Only send move
+        PhotonMoveSync.Instance.SendMove(from, to);
+    }
+}
+
+2. OnlineTurnManager.cs
+using Photon.Pun;
+using UnityEngine;
+
+public class OnlineTurnManager : MonoBehaviourPun
+{
+    public static OnlineTurnManager Instance;
+
+    public TeamColor CurrentTurn { get; private set; }
+
+    void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+    }
+
+    void Start()
+    {
+        CurrentTurn = TeamColor.White;
+        UpdateTurnUI();
+    }
+
+    public bool IsMyTurn()
+    {
+        TeamColor myColor =
+            PhotonPlayerData.LocalSide == PlayerSide.White
+                ? TeamColor.White
+                : TeamColor.Black;
+
+        return CurrentTurn == myColor;
+    }
+
+    [PunRPC]
+    public void RPC_SwitchTurn()
+    {
+        CurrentTurn =
+            CurrentTurn == TeamColor.White
+                ? TeamColor.Black
+                : TeamColor.White;
+
+        UpdateTurnUI();
+    }
+
+    void UpdateTurnUI()
+    {
+        if (UIManager.Instance != null)
+            UIManager.Instance.UpdateTurnUI(CurrentTurn);
+    }
+}
+
+3. PhotonMoveSync.cs
+using Photon.Pun;
+using UnityEngine;
+
+public class PhotonMoveSync : MonoBehaviourPun
+{
+    public static PhotonMoveSync Instance;
+
+    void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+    }
+
+    public void SendMove(Vector2Int from, Vector2Int to)
+    {
+        if (!OnlineTurnManager.Instance.IsMyTurn())
+            return;
+
+        // Send move to opponent
+        photonView.RPC(
+            nameof(RPC_ReceiveMove),
+            RpcTarget.Others,
+            from.x, from.y,
+            to.x, to.y
+        );
+
+        // 🔥 SINGLE TURN SWITCH CALL
+        OnlineTurnManager.Instance.photonView.RPC(
+            nameof(OnlineTurnManager.RPC_SwitchTurn),
+            RpcTarget.All
+        );
+    }
+
+    [PunRPC]
+    void RPC_ReceiveMove(int fromX, int fromY, int toX, int toY)
+    {
+        ApplyRemoteMove(
+            new Vector2Int(fromX, fromY),
+            new Vector2Int(toX, toY)
+        );
+    }
+
+    void ApplyRemoteMove(Vector2Int from, Vector2Int to)
+    {
+        Piece piece =
+            BoardManager.Instance.GetPieceAt(from.x, from.y);
+
+        if (piece == null)
+            return;
+
+        MoveExecutor.Instance.ExecuteMove(piece, to, true);
+    }
+}
+
+4. ChessClock.cs
+using UnityEngine;
+using TMPro;
+
+public class ChessClock : MonoBehaviour
+{
+    [Header("Time (seconds)")]
+    public float initialTime = 600f; // 10 min per player
+
+    [Header("UI")]
+    public TMP_Text whiteTimeText;
+    public TMP_Text blackTimeText;
+
+    private float whiteTime;
+    private float blackTime;
+
+    private bool isRunning = false;
+
+    void Start()
+    {
+        ResetClock();
+    }
+
+    void Update()
+    {
+        if (!isRunning) return;
+
+        TeamColor turn =
+            GameContext.Instance.GameMode is OnlineGameMode
+            ? OnlineTurnManager.Instance.CurrentTurn
+            : TurnManager.Instance.currentTurn;
+
+        if (turn == TeamColor.White)
+        {
+            whiteTime -= Time.deltaTime;
+            if (whiteTime <= 0)
+            {
+                whiteTime = 0;
+                TimeUp(TeamColor.White);
+            }
+        }
+        else
+        {
+            blackTime -= Time.deltaTime;
+            if (blackTime <= 0)
+            {
+                blackTime = 0;
+                TimeUp(TeamColor.Black);
+            }
+        }
+
+        UpdateUI();
+    }
+
+    void TimeUp(TeamColor loser)
+    {
+        isRunning = false;
+
+        CommonPopupController.Instance.ShowResult(
+            loser == TeamColor.White ? "Black Wins (Time)" : "White Wins (Time)"
+        );
+    }
+
+    public void StartClock()
+    {
+        isRunning = true;
+    }
+
+    public void StopClock()
+    {
+        isRunning = false;
+    }
+
+    public void ResetClock()
+    {
+        whiteTime = initialTime;
+        blackTime = initialTime;
+        UpdateUI();
+        isRunning = true;
+    }
+
+    void UpdateUI()
+    {
+        whiteTimeText.text = FormatTime(whiteTime);
+        blackTimeText.text = FormatTime(blackTime);
+    }
+
+    string FormatTime(float time)
+    {
+        int min = Mathf.FloorToInt(time / 60);
+        int sec = Mathf.FloorToInt(time % 60);
+        return $"{min:00}:{sec:00}";
+    }
+}
+
+5. MatchController.cs
+using UnityEngine;
+using UnityEngine.UI;
+
+public class MatchController : Singleton<MatchController>
+{
+    public ChessClock chessClock;
+    [SerializeField] private Button drawButton;
+    [SerializeField] private Button resignButton;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        drawButton.onClick.AddListener(() =>
+        {
+            CommonPopupController.Instance.ShowDrawConfirm();
+        });
+        resignButton.onClick.AddListener(() =>
+        {
+            CommonPopupController.Instance.ShowResignConfirm();
+        });
+    }
+
+    public void DeclareDraw()
+    {
+        chessClock.StopClock();
+    }
+
+    public void Resign(TeamColor resigningPlayer)
+    {
+        chessClock.StopClock();
+    }
+}
+
+6. CommonPopupController.cs
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using UnityEngine.SceneManagement;
+
+public class CommonPopupController : Singleton<CommonPopupController>
+{
+    [Header("Popup UI")]
+    public GameObject popupRoot;
+    public TMP_Text titleText;
+    public TMP_Text messageText;
+    public Button leftButton;
+    public Button rightButton;
+    public TMP_Text leftButtonText;
+    public TMP_Text rightButtonText;
+
+    void Start()
+    {
+        popupRoot.SetActive(false);
+    }
+
+    // ================= DRAW =================
+    public void ShowDrawConfirm()
+    {
+        ShowPopup(
+            "Draw Match?",
+            "Do you want to declare a draw?",
+            "No",
+            "Yes",
+            ClosePopup,
+            () =>
+            {
+                MatchController.Instance.DeclareDraw();
+                ClosePopup();
+                ShowResult("Draw");
+            }
+        );
+    }
+
+    // ================= RESIGN =================
+    public void ShowResignConfirm()
+    {
+        ShowPopup(
+            "Resign Game?",
+            "Are you sure you want to resign?",
+            "No",
+            "Yes",
+            ClosePopup,
+            () =>
+            {
+                TeamColor resigning = TurnManager.Instance.currentTurn;
+                MatchController.Instance.Resign(resigning);
+                ClosePopup();
+                ShowResult(
+                    resigning == TeamColor.White
+                        ? "Black Wins (Resign)"
+                        : "White Wins (Resign)"
+                );
+            }
+        );
+    }
+
+    // ================= EXIT =================
+    public void ShowExitConfirm()
+    {
+        ShowPopup(
+            "Exit Game?",
+            "Your progress will be lost.",
+            "No",
+            "Yes",
+            ClosePopup,
+            () =>
+            {
+                SceneLoader.Instance.LoadScene(SceneLoader.SceneType.MainMenu);
+            }
+        );
+    }
+
+    // ================= RESULT =================
+    public void ShowResult(string resultTextValue)
+    {
+        ShowPopup(
+            "Game Over",
+            resultTextValue,
+            "Exit",
+            "Restart",
+            () =>
+            {
+                SceneManager.LoadScene("MainMenuScene");
+            },
+            () =>
+            {
+                GameManager.Instance.RestartGame();
+                ClosePopup();
+            }
+        );
+    }
+
+    // ================= CORE =================
+    void ShowPopup(
+        string title,
+        string message,
+        string leftTxt,
+        string rightTxt,
+        UnityEngine.Events.UnityAction leftAction,
+        UnityEngine.Events.UnityAction rightAction
+    )
+    {
+        popupRoot.SetActive(true);
+
+        titleText.text = title;
+        messageText.text = message;
+
+        leftButtonText.text = leftTxt;
+        rightButtonText.text = rightTxt;
+
+        leftButton.onClick.RemoveAllListeners();
+        rightButton.onClick.RemoveAllListeners();
+
+        leftButton.onClick.AddListener(leftAction);
+        rightButton.onClick.AddListener(rightAction);
+    }
+
+    public void ClosePopup()
+    {
+        popupRoot.SetActive(false);
+    }
+}
+
+7. UIManager.cs
+using System.Collections;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+public class UIManager : Singleton<UIManager>
+{
+    private Color NORMAL;
+    private Color CHECK;
+    private Color CHECKMATE;
+    private Color STALEMATE;
+
+    Coroutine statusRoutine;
+    private WaitForSeconds _twoSecondWait;
+
+    [Header("Footer")]
+    public TMP_Text turnText;
+    public TMP_Text statusText;
+
+    [Header("Captured Pieces")]
+    public Transform whiteCapturedGrid;
+    public Transform blackCapturedGrid;
+    public GameObject capturedPiecePrefab;
+    [SerializeField] private Button exitButton;
+
+    // Result popup is now handled by CommonPopupController
+
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        NORMAL = Hex("#9CA3AF");
+        CHECK = Hex("#F97316");
+        CHECKMATE = Hex("#DC2626");
+        STALEMATE = Hex("#6B7280");
+
+        // Restart button wiring removed; restart handled by CommonPopupController result popup
+
+
+        _twoSecondWait = new WaitForSeconds(2f);
+        exitButton.onClick.RemoveAllListeners();
+        exitButton.onClick.AddListener(OnBack);
+
+    }
+    void OnEnable()
+    {
+        NavigationBack.OnBackRequested += HandleBack;
+    }
+
+    void OnDisable()
+    {
+        NavigationBack.OnBackRequested -= HandleBack;
+    }
+    void Start()
+    {
+        ResetUI();
+    }
+
+    #region TURN & STATUS
+
+    public void UpdateTurnUI(TeamColor turn)
+    {
+        turnText.text = turn == TeamColor.White ? "White to Move" : "Black to Move";
+    }
+
+    public void ShowCheck()
+    {
+        SetStatus("Check", CHECK, true);
+    }
+
+    public void ShowCheckmate()
+    {
+        SetStatus("Checkmate", CHECKMATE, false);
+    }
+
+    public void ShowStalemate()
+    {
+        SetStatus("Stalemate", STALEMATE, false);
+    }
+
+    public void ClearStatus()
+    {
+        if (statusRoutine != null)
+            StopCoroutine(statusRoutine);
+
+        statusText.text = "";
+    }
+
+    void SetStatus(string msg, Color col, bool autoClear)
+    {
+        if (statusRoutine != null)
+            StopCoroutine(statusRoutine);
+
+        statusText.text = msg;
+        statusText.color = col;
+
+        if (autoClear)
+            statusRoutine = StartCoroutine(AutoClear());
+    }
+
+    IEnumerator AutoClear()
+    {
+        yield return _twoSecondWait;
+        statusText.text = "";
+    }
+
+    #endregion
+
+    #region CAPTURED PIECES
+
+    public void AddCapturedPiece(Piece piece)
+    {
+        Transform grid =
+            piece.teamColor == TeamColor.White
+            ? blackCapturedGrid
+            : whiteCapturedGrid;
+
+        GameObject icon = Instantiate(capturedPiecePrefab, grid);
+        icon.GetComponent<Image>().sprite = piece.image.sprite;
+    }
+
+    #endregion
+
+    public void ResetUI()
+    {
+        statusText.text = "";
+        statusText.color = NORMAL;
+
+        turnText.text = "White to Move";
+
+        ClearGrid(whiteCapturedGrid);
+        ClearGrid(blackCapturedGrid);
+    }
+
+    void ClearGrid(Transform t)
+    {
+        for (int i = t.childCount - 1; i >= 0; i--)
+            Destroy(t.GetChild(i).gameObject);
+    }
+
+    Color Hex(string h)
+    {
+        ColorUtility.TryParseHtmlString(h, out Color c);
+        return c;
+    }
+
+    private void OnBack()
+    {
+        HandleBack();
+    }
+
+    private bool HandleBack()
+    {
+        CommonPopupController.Instance.ShowExitConfirm();
+        return true; // Back handled, do NOT propagate
+    }
+
+}
+
+8. PhotonRoomManager.cs
+using Photon.Pun;
+using Photon.Realtime;
+using UnityEngine;
+using System;
+
+public class PhotonRoomManager : MonoBehaviourPunCallbacks
+{
+    public static PhotonRoomManager Instance;
+
+    public event Action<string> RoomCreated;
+    public event Action<string> RoomJoined;
+    public event Action<string> PlayerJoined;
+
+    void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    // ================= CREATE =================
+
+    public void CreateRoom()
+    {
+        if (!PhotonNetwork.IsConnectedAndReady)
+        {
+            Debug.LogError("Photon not ready");
+            return;
+        }
+
+        PhotonPlayerData.SetHost();
+
+        string roomCode = GenerateRoomCode();
+
+        RoomOptions options = new RoomOptions
+        {
+            MaxPlayers = 2,
+            IsVisible = false,
+            IsOpen = true
+        };
+
+        PhotonNetwork.CreateRoom(roomCode, options);
+    }
+
+    // ================= JOIN =================
+
+    public void JoinRoom(string code)
+    {
+        if (!PhotonNetwork.IsConnectedAndReady)
+        {
+            Debug.LogError("Photon not ready");
+            return;
+        }
+
+        PhotonPlayerData.SetJoiner();
+        PhotonNetwork.JoinRoom(code);
+    }
+
+    // ================= START =================
+
+    public void StartGame()
+    {
+        if (!PhotonNetwork.IsMasterClient)
+            return;
+
+        PhotonNetwork.LoadLevel("OnlineGameScene");
+    }
+
+    // ================= CALLBACKS =================
+
+    public override void OnCreatedRoom()
+    {
+        Debug.Log("Room Created");
+        GlobalLoaderController.Instance.Hide();
+        RoomCreated?.Invoke(PhotonNetwork.CurrentRoom.Name);
+    }
+
+    public override void OnJoinedRoom()
+    {
+        Debug.Log("Joined Room");
+
+        RoomJoined?.Invoke(PhotonNetwork.CurrentRoom.Name);
+        PlayerJoined?.Invoke(null);
+    }
+
+    public override void OnPlayerEnteredRoom(Player newPlayer)
+    {
+        PlayerJoined?.Invoke(newPlayer.NickName);
+    }
+
+    public override void OnJoinRoomFailed(short returnCode, string message)
+    {
+        Debug.LogError(message);
+        GlobalLoaderController.Instance.Hide();
+    }
+
+    // ================= UTILS =================
+
+    string GenerateRoomCode()
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        string code = "";
+
+        for (int i = 0; i < 6; i++)
+            code += chars[UnityEngine.Random.Range(0, chars.Length)];
+
+        return code;
+    }
+}
+
+
+issue:
+only host can move their pieces, client ko turn mil hi nahi rha hai ye ek issue hai 
+
+flow: 
+1st turn : host (host timer will work, client timer will be stop)
+2nd turn : Client(client timer will work, host timer will be stop)
+:
+:
+:
+:
+so on till game end 
+
+or who ever will win then Result pop up will active for both player 
+whoever will win msg dono ko show hoga 
+
+
+turn text bhi aise hi turn ke hisab se update hoga or dono ko show hoga or status text bhi or jo bhi player game ko chhodega other player ke liye game end hoga or jisne chhoda hai wo har jayega or dusra player jit jayega
+
+
+
+

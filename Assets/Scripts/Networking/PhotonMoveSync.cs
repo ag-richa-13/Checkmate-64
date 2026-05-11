@@ -12,19 +12,15 @@ public class PhotonMoveSync : MonoBehaviourPun
             Destroy(gameObject);
             return;
         }
-
         Instance = this;
     }
 
-    // =========================================================
-    // CALLED BY LOCAL PLAYER AFTER A LEGAL MOVE
-    // =========================================================
     public void SendMove(Vector2Int from, Vector2Int to)
     {
-        // Only current-turn player can send
         if (!OnlineTurnManager.Instance.IsMyTurn())
             return;
 
+        // 1️⃣ Send move to opponent
         photonView.RPC(
             nameof(RPC_ReceiveMove),
             RpcTarget.Others,
@@ -32,13 +28,19 @@ public class PhotonMoveSync : MonoBehaviourPun
             to.x, to.y
         );
 
-        // End local turn AFTER sending
-        OnlineTurnManager.Instance.EndTurn();
+        // 2️⃣ Ask MASTER to switch turn
+        photonView.RPC(
+            nameof(RPC_RequestTurnSwitch),
+            RpcTarget.MasterClient
+        );
     }
 
-    // =========================================================
-    // RECEIVED BY REMOTE PLAYER
-    // =========================================================
+    [PunRPC]
+    void RPC_RequestTurnSwitch()
+    {
+        OnlineTurnManager.Instance.RequestTurnSwitch();
+    }
+
     [PunRPC]
     void RPC_ReceiveMove(int fromX, int fromY, int toX, int toY)
     {
@@ -46,21 +48,13 @@ public class PhotonMoveSync : MonoBehaviourPun
             new Vector2Int(fromX, fromY),
             new Vector2Int(toX, toY)
         );
-
-        // End turn for remote side
-        OnlineTurnManager.Instance.EndTurn();
     }
 
-    // =========================================================
-    // APPLY MOVE WITHOUT RE-SENDING
-    // =========================================================
     void ApplyRemoteMove(Vector2Int from, Vector2Int to)
     {
         Piece piece = BoardManager.Instance.GetPieceAt(from.x, from.y);
-        if (piece == null)
-            return;
+        if (piece == null) return;
 
-        // Direct execution path (bypasses selection clicks)
-        SelectionManager.Instance.ExecuteMoveExternally(piece, to);
+        MoveExecutor.Instance.ExecuteMove(piece, to, true);
     }
 }

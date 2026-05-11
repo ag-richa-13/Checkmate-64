@@ -2,20 +2,32 @@
 
 public class BoardManager : Singleton<BoardManager>
 {
+    [Header("Board Setup")]
     public GameObject tilePrefab;
     public Sprite whiteTile;
     public Sprite blackTile;
 
+    [Header("Board Layout")]
     public Transform[] rows;
+
     private Tile[,] board = new Tile[8, 8];
 
-    private Piece[,] pieces = new Piece[8, 8];
+    // 🔥 SINGLE SOURCE OF TRUTH FOR PIECES
+    public BoardState BoardState { get; private set; }
+
+    protected override void Awake()
+    {
+        base.Awake();
+        BoardState = new BoardState();
+    }
 
     void Start()
     {
         GenerateBoard();
-        PieceSpawner.Instance.SpawnAllPieces(); // CALL AFTER BOARD READY
+        PieceSpawner.Instance.SpawnAllPieces(); // AFTER board ready
     }
+
+    // ================= BOARD GENERATION =================
 
     void GenerateBoard()
     {
@@ -33,53 +45,45 @@ public class BoardManager : Singleton<BoardManager>
             }
         }
     }
-    public Vector2Int GetKingPosition(TeamColor team)
-    {
-        for (int x = 0; x < 8; x++)
-        {
-            for (int y = 0; y < 8; y++)
-            {
-                Piece p = pieces[x, y];
-                if (p != null && p.pieceType == PieceType.King && p.teamColor == team)
-                    return new Vector2Int(x, y);
-            }
-        }
-        return new Vector2Int(-1, -1);
-    }
+
+    // ================= TILE ACCESS =================
 
     public Tile GetTileAt(int x, int y)
     {
+        if (x < 0 || x > 7 || y < 0 || y > 7)
+            return null;
+
         return board[x, y];
     }
 
+    // ================= PIECE ACCESS (FORWARDERS) =================
+
     public Piece GetPieceAt(int x, int y)
     {
-        if (x < 0 || x > 7 || y < 0 || y > 7) return null;
-        return pieces[x, y];
+        return BoardState.GetPieceAt(x, y);
     }
 
     public void SetPieceAt(int x, int y, Piece piece)
     {
-        if (x < 0 || x > 7 || y < 0 || y > 7) return;
-        pieces[x, y] = piece;
+        BoardState.SetPieceAt(x, y, piece);
     }
+
+    public Vector2Int GetKingPosition(TeamColor team)
+    {
+        return BoardState.GetKingPosition(team);
+    }
+
+    // ================= RESET =================
 
     public void ClearBoard()
     {
-        // Clear pieces array
-        for (int x = 0; x < 8; x++)
-        {
-            for (int y = 0; y < 8; y++)
-            {
-                pieces[x, y] = null;
-            }
-        }
+        // Clear logical board
+        BoardState.Clear();
 
-        // Destroy piece GameObjects
+        // Destroy all piece GameObjects
         foreach (Piece p in FindObjectsByType<Piece>(FindObjectsSortMode.None))
         {
             Destroy(p.gameObject);
         }
     }
-
 }

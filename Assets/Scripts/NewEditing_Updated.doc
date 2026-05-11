@@ -1,0 +1,2667 @@
+================================================================================
+                        SIMPLE CHESS - COMPLETE SCRIPTS
+                              All C# Code Files
+================================================================================
+
+========================================
+FILE 1: BoardManager.cs
+PATH: Assets/Scripts/Game/Board/BoardManager.cs
+========================================
+using UnityEngine;
+
+public class BoardManager : Singleton<BoardManager>
+{
+    [Header("Board Setup")]
+    public GameObject tilePrefab;
+    public Sprite whiteTile;
+    public Sprite blackTile;
+
+    [Header("Board Layout")]
+    public Transform[] rows;
+
+    private Tile[,] board = new Tile[8, 8];
+
+    // 🔥 SINGLE SOURCE OF TRUTH FOR PIECES
+    public BoardState BoardState { get; private set; }
+
+    protected override void Awake()
+    {
+        base.Awake();
+        BoardState = new BoardState();
+    }
+
+    void Start()
+    {
+        GenerateBoard();
+        PieceSpawner.Instance.SpawnAllPieces(); // AFTER board ready
+    }
+
+    // ================= BOARD GENERATION =================
+
+    void GenerateBoard()
+    {
+        for (int row = 0; row < 8; row++)
+        {
+            for (int col = 0; col < 8; col++)
+            {
+                GameObject tileObj = Instantiate(tilePrefab, rows[row]);
+                Tile tile = tileObj.GetComponent<Tile>();
+
+                bool isWhite = (row + col) % 2 == 0;
+                tile.Init(col, 7 - row, isWhite ? whiteTile : blackTile);
+
+                board[col, 7 - row] = tile;
+            }
+        }
+    }
+
+    // ================= TILE ACCESS =================
+
+    public Tile GetTileAt(int x, int y)
+    {
+        if (x < 0 || x > 7 || y < 0 || y > 7)
+            return null;
+
+        return board[x, y];
+    }
+
+    // ================= PIECE ACCESS (FORWARDERS) =================
+
+    public Piece GetPieceAt(int x, int y)
+    {
+        return BoardState.GetPieceAt(x, y);
+    }
+
+    public void SetPieceAt(int x, int y, Piece piece)
+    {
+        BoardState.SetPieceAt(x, y, piece);
+    }
+
+    public Vector2Int GetKingPosition(TeamColor team)
+    {
+        return BoardState.GetKingPosition(team);
+    }
+
+    // ================= RESET =================
+
+    public void ClearBoard()
+    {
+        // Clear logical board
+        BoardState.Clear();
+
+        // Destroy all piece GameObjects
+        foreach (Piece p in FindObjectsByType<Piece>(FindObjectsSortMode.None))
+        {
+            Destroy(p.gameObject);
+        }
+    }
+}
+
+========================================
+FILE 2: BoardState.cs
+PATH: Assets/Scripts/Game/Board/BoardState.cs
+========================================
+using UnityEngine;
+
+public class BoardState
+{
+    private Piece[,] pieces = new Piece[8, 8];
+
+    public Piece GetPieceAt(int x, int y)
+    {
+        if (x < 0 || x > 7 || y < 0 || y > 7) return null;
+        return pieces[x, y];
+    }
+
+    public void SetPieceAt(int x, int y, Piece piece)
+    {
+        if (x < 0 || x > 7 || y < 0 || y > 7) return;
+        pieces[x, y] = piece;
+    }
+
+    public Vector2Int GetKingPosition(TeamColor team)
+    {
+        for (int x = 0; x < 8; x++)
+            for (int y = 0; y < 8; y++)
+            {
+                Piece p = pieces[x, y];
+                if (p != null &&
+                    p.pieceType == PieceType.King &&
+                    p.teamColor == team)
+                    return new Vector2Int(x, y);
+            }
+
+        return new Vector2Int(-1, -1);
+    }
+
+    public void Clear()
+    {
+        for (int x = 0; x < 8; x++)
+            for (int y = 0; y < 8; y++)
+                pieces[x, y] = null;
+    }
+}
+
+========================================
+FILE 3: Tile.cs
+PATH: Assets/Scripts/Game/Board/Tile.cs
+========================================
+using UnityEngine;
+using UnityEngine.UI;
+
+public class Tile : MonoBehaviour
+{
+    public Vector2Int boardPosition;
+    public Image image;
+    public Button button;
+
+    void Awake()
+    {
+        button = GetComponent<Button>();
+        button.onClick.AddListener(OnTileClicked);
+    }
+
+    void OnTileClicked()
+    {
+        SelectionManager.Instance.OnTileSelected(this);
+    }
+
+    public void Init(int x, int y, Sprite sprite)
+    {
+        boardPosition = new Vector2Int(x, y);
+        image.sprite = sprite;
+    }
+}
+
+========================================
+FILE 4: GameConstants.cs
+PATH: Assets/Scripts/Game/Core/GameConstants.cs
+========================================
+// EMPTY FILE - Used for game constants definitions
+
+========================================
+FILE 5: GameEnums.cs
+PATH: Assets/Scripts/Game/Core/GameEnums.cs
+========================================
+// EMPTY FILE - Used for game enum definitions
+// Note: Enums like PieceType and TeamColor are defined in Piece.cs
+
+========================================
+FILE 6: GameContext.cs
+PATH: Assets/Scripts/Game/Core/GameContext.cs
+========================================
+using UnityEngine;
+
+public class GameContext : Singleton<GameContext>
+{
+    public IGameMode GameMode { get; private set; }
+    public IChessRules Rules { get; private set; }
+
+    public void Init()
+    {
+        Rules = new ChessRules();
+    }
+
+    public void SetGameMode(IGameMode mode)
+    {
+        GameMode = mode;
+    }
+}
+
+========================================
+FILE 7: GameSceneBootstrap.cs
+PATH: Assets/Scripts/Game/Core/GameSceneBootstrap.cs
+========================================
+using UnityEngine;
+
+public class GameSceneBootstrap : MonoBehaviour
+{
+    [SerializeField] private bool isOnlineGame;
+
+    void Awake()
+    {
+        if (isOnlineGame)
+        {
+            GameContext.Instance.SetGameMode(
+                new OnlineGameMode()
+            );
+        }
+        else
+        {
+            GameContext.Instance.SetGameMode(
+                new OfflineGameMode()
+            );
+        }
+        GameContext.Instance.Init();
+    }
+}
+
+========================================
+FILE 8: MatchController.cs
+PATH: Assets/Scripts/Game/Gameplay/MatchController.cs
+========================================
+using UnityEngine;
+using UnityEngine.UI;
+
+public class MatchController : Singleton<MatchController>
+{
+    public ChessClock chessClock;
+    [SerializeField] private Button drawButton;
+    [SerializeField] private Button resignButton;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        drawButton.onClick.AddListener(() =>
+        {
+            CommonPopupController.Instance.ShowDrawConfirm();
+        });
+        resignButton.onClick.AddListener(() =>
+        {
+            CommonPopupController.Instance.ShowResignConfirm();
+        });
+    }
+
+    public void DeclareDraw()
+    {
+        chessClock.StopClock();
+    }
+
+    public void Resign(TeamColor resigningPlayer)
+    {
+        chessClock.StopClock();
+    }
+}
+
+========================================
+FILE 9: MoveExecutor.cs
+PATH: Assets/Scripts/Game/Gameplay/MoveExecutor.cs
+========================================
+using System.Collections;
+using UnityEngine;
+
+public class MoveExecutor : Singleton<MoveExecutor>
+{
+    public void ExecuteMove(Piece piece, Vector2Int target, bool isRemote = false)
+    {
+        MoveData move =
+            GameContext.Instance.Rules.CreateMove(
+                    piece,
+                    target,
+                    BoardManager.Instance.BoardState
+                );
+
+        StartCoroutine(ExecuteRoutine(move));
+    }
+
+
+    IEnumerator ExecuteRoutine(MoveData move)
+    {
+        BoardManager board = BoardManager.Instance;
+        BoardState state = board.BoardState;
+
+        // Capture
+        if (move.isCapture)
+        {
+            Piece captured =
+                state.GetPieceAt(
+                    move.capturedPiecePos.x,
+                    move.capturedPiecePos.y);
+
+            if (captured != null)
+            {
+                UIManager.Instance.AddCapturedPiece(captured);
+                yield return Capture(captured);
+                state.SetPieceAt(
+                    move.capturedPiecePos.x,
+                    move.capturedPiecePos.y,
+                    null);
+            }
+        }
+
+        // Castling rook move
+        if (move.isCastling)
+        {
+            Piece rook =
+                state.GetPieceAt(move.rookFrom.x, move.rookFrom.y);
+
+            state.SetPieceAt(move.rookFrom.x, move.rookFrom.y, null);
+            state.SetPieceAt(move.rookTo.x, move.rookTo.y, rook);
+
+            Tile rookTile =
+                board.GetTileAt(move.rookTo.x, move.rookTo.y);
+
+            rook.transform.SetParent(rookTile.transform);
+            rook.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
+            rook.boardPosition = move.rookTo;
+            rook.hasMoved = true;
+        }
+
+        // Move piece
+        state.SetPieceAt(move.from.x, move.from.y, null);
+        state.SetPieceAt(move.to.x, move.to.y, move.piece);
+
+        yield return AnimateMove(move.piece, move.to);
+
+        move.piece.boardPosition = move.to;
+        move.piece.hasMoved = true;
+
+        // Reset all pawn en-passant flags
+        foreach (Piece p in FindObjectsByType<Piece>(FindObjectsSortMode.None))
+        {
+            if (p.pieceType == PieceType.Pawn)
+                p.justMovedTwoSteps = false;
+        }
+
+        // Mark pawn double-step
+        if (move.piece.pieceType == PieceType.Pawn &&
+            Mathf.Abs(move.from.y - move.to.y) == 2)
+        {
+            move.piece.justMovedTwoSteps = true;
+        }
+
+
+        // Promotion
+        if (move.isPromotion)
+        {
+            PromotePawn(move.piece);
+        }
+
+        TileHighlight.Instance.HighlightLastMove(
+            board.GetTileAt(move.from.x, move.from.y),
+            board.GetTileAt(move.to.x, move.to.y));
+
+        GameContext.Instance.GameMode
+            .OnMoveExecuted(move.from, move.to);
+
+        TurnManager.Instance?.EvaluateGameState();
+    }
+
+    // ================= HELPERS =================
+
+    IEnumerator AnimateMove(Piece piece, Vector2Int target)
+    {
+        RectTransform rt = piece.GetComponent<RectTransform>();
+        RectTransform targetRT =
+            BoardManager.Instance
+                .GetTileAt(target.x, target.y)
+                .GetComponent<RectTransform>();
+
+        yield return PieceAnimator.MoveTo(rt, targetRT);
+
+        piece.transform.SetParent(targetRT);
+        rt.anchoredPosition = Vector2.zero;
+    }
+
+    IEnumerator Capture(Piece piece)
+    {
+        yield return PieceAnimator.CaptureEffect(
+            piece.GetComponent<RectTransform>());
+        Destroy(piece.gameObject);
+    }
+
+    void HandleCastling(
+        Piece king,
+        Vector2Int target,
+        BoardState state
+    )
+    {
+        int y = king.boardPosition.y;
+        int rookFromX = target.x > king.boardPosition.x ? 7 : 0;
+        int rookToX = target.x > king.boardPosition.x
+            ? target.x - 1
+            : target.x + 1;
+
+        Piece rook = state.GetPieceAt(rookFromX, y);
+        if (rook == null) return;
+
+        state.SetPieceAt(rookFromX, y, null);
+        state.SetPieceAt(rookToX, y, rook);
+
+        Tile rookTile =
+            BoardManager.Instance.GetTileAt(rookToX, y);
+
+        rook.transform.SetParent(rookTile.transform);
+        rook.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
+        rook.boardPosition = new Vector2Int(rookToX, y);
+        rook.hasMoved = true;
+    }
+
+    void PromotePawn(Piece pawn)
+    {
+        pawn.pieceType = PieceType.Queen;
+        pawn.image.sprite =
+            pawn.teamColor == TeamColor.White
+            ? PieceSpawner.Instance.whiteQueen
+            : PieceSpawner.Instance.blackQueen;
+    }
+}
+
+========================================
+FILE 10: SelectionManager.cs
+PATH: Assets/Scripts/Game/Gameplay/SelectionManager.cs
+========================================
+using System.Collections.Generic;
+using UnityEngine;
+
+public class SelectionManager : Singleton<SelectionManager>
+{
+    public Piece selectedPiece;
+    public Tile selectedTile;
+
+    private IChessRules rules;
+    private MoveGenerator moveGenerator;
+
+    private HashSet<Vector2Int> validMoves = new HashSet<Vector2Int>();
+
+    protected override void Awake()
+    {
+        base.Awake();
+        rules = new ChessRules();
+        moveGenerator = new MoveGenerator(rules);
+    }
+
+    // =====================================================
+    // PIECE SELECTION
+    // =====================================================
+
+    public void OnPieceSelected(Piece piece)
+    {
+        if (piece == null)
+            return;
+
+        // Turn authority handled by GameMode
+        if (!GameContext.Instance.GameMode.IsMyTurn(piece.teamColor))
+            return;
+
+        ClearSelection();
+
+        selectedPiece = piece;
+        selectedTile = BoardManager.Instance.GetTileAt(
+            piece.boardPosition.x,
+            piece.boardPosition.y
+        );
+
+        TileHighlight.Instance.HighlightSelectedTile(selectedTile);
+        ShowPossibleMoves(piece);
+    }
+
+    // =====================================================
+    // TILE SELECTION
+    // =====================================================
+
+    public void OnTileSelected(Tile tile)
+    {
+        if (selectedPiece == null || tile == null)
+            return;
+
+        if (!GameContext.Instance.GameMode
+            .IsMyTurn(selectedPiece.teamColor))
+            return;
+
+        if (!validMoves.Contains(tile.boardPosition))
+            return;
+
+        MoveExecutor.Instance.ExecuteMove(
+            selectedPiece,
+            tile.boardPosition
+        );
+
+        ClearSelection();
+    }
+
+    // =====================================================
+    // MOVE GENERATION (READ-ONLY)
+    // =====================================================
+
+    void ShowPossibleMoves(Piece piece)
+    {
+        validMoves = moveGenerator.GetLegalMoves(
+            piece,
+            BoardManager.Instance.BoardState
+        );
+
+        foreach (Vector2Int pos in validMoves)
+        {
+            Tile tile = BoardManager.Instance.GetTileAt(pos.x, pos.y);
+            if (tile == null) continue;
+
+            if (BoardManager.Instance.GetPieceAt(pos.x, pos.y) == null)
+            {
+                TileHighlight.Instance.HighlightMoveTile(tile);
+            }
+            else
+            {
+                TileHighlight.Instance.HighlightCaptureTile(tile);
+            }
+        }
+    }
+
+    // =====================================================
+    // UTILITIES
+    // =====================================================
+
+    void ClearSelection()
+    {
+        TileHighlight.Instance.ClearAll();
+        validMoves.Clear();
+        selectedPiece = null;
+        selectedTile = null;
+    }
+
+    public void ClearSelectionExternally()
+    {
+        ClearSelection();
+    }
+
+    // =====================================================
+    // USED BY TurnManager (TEMP – Phase 4 will move this)
+    // =====================================================
+
+    public bool HasAnyLegalMove(TeamColor team)
+    {
+        BoardState board = BoardManager.Instance.BoardState;
+
+        for (int x = 0; x < 8; x++)
+        {
+            for (int y = 0; y < 8; y++)
+            {
+                Piece piece = board.GetPieceAt(x, y);
+                if (piece == null || piece.teamColor != team)
+                    continue;
+
+                var moves = moveGenerator.GetLegalMoves(piece, board);
+                if (moves.Count > 0)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+========================================
+FILE 11: TurnManager.cs
+PATH: Assets/Scripts/Game/Gameplay/TurnManager.cs
+========================================
+using UnityEngine;
+
+public class TurnManager : Singleton<TurnManager>
+{
+    public TeamColor currentTurn = TeamColor.White;
+
+    private IChessRules rules;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        rules = new ChessRules();
+    }
+
+    public bool IsMyTurn(TeamColor team)
+    {
+        return team == currentTurn;
+    }
+
+    public void SwitchTurn()
+    {
+        currentTurn = currentTurn == TeamColor.White
+            ? TeamColor.Black
+            : TeamColor.White;
+
+        UIManager.Instance.UpdateTurnUI(currentTurn);
+    }
+
+    public void ResetTurn()
+    {
+        currentTurn = TeamColor.White;
+        UIManager.Instance.UpdateTurnUI(currentTurn);
+    }
+
+    public void EvaluateGameState()
+    {
+        TeamColor current = currentTurn;
+        SelectionManager sm = SelectionManager.Instance;
+
+        bool hasMoves = sm.HasAnyLegalMove(current);
+        bool inCheck = rules.IsKingInCheck(
+            current,
+            BoardManager.Instance.BoardState
+        );
+
+        if (!hasMoves)
+        {
+            if (inCheck)
+            {
+                CommonPopupController.Instance.ShowResult(
+                    current == TeamColor.White
+                        ? "Black Wins"
+                        : "White Wins"
+                );
+            }
+            else
+            {
+                CommonPopupController.Instance.ShowResult("Draw");
+            }
+        }
+        else if (inCheck)
+        {
+            UIManager.Instance.ShowCheck();
+        }
+        else
+        {
+            UIManager.Instance.ClearStatus();
+        }
+    }
+}
+
+========================================
+FILE 12: ChessClock.cs
+PATH: Assets/Scripts/Game/Managers/ChessClock.cs
+========================================
+using UnityEngine;
+using TMPro;
+
+public class ChessClock : MonoBehaviour
+{
+    [Header("Time (seconds)")]
+    public float initialTime = 600f; // 10 min per player
+
+    [Header("UI")]
+    public TMP_Text whiteTimeText;
+    public TMP_Text blackTimeText;
+
+    private float whiteTime;
+    private float blackTime;
+
+    private bool isRunning = false;
+
+    void Start()
+    {
+        ResetClock();
+    }
+
+    void Update()
+    {
+        if (!isRunning) return;
+
+        if (TurnManager.Instance.currentTurn == TeamColor.White)
+        {
+            whiteTime -= Time.deltaTime;
+            if (whiteTime <= 0)
+            {
+                whiteTime = 0;
+                TimeUp(TeamColor.White);
+            }
+        }
+        else
+        {
+            blackTime -= Time.deltaTime;
+            if (blackTime <= 0)
+            {
+                blackTime = 0;
+                TimeUp(TeamColor.Black);
+            }
+        }
+
+        UpdateUI();
+    }
+
+    void TimeUp(TeamColor loser)
+    {
+        isRunning = false;
+
+        CommonPopupController.Instance.ShowResult(
+            loser == TeamColor.White ? "Black Wins (Time)" : "White Wins (Time)"
+        );
+    }
+
+    public void StartClock()
+    {
+        isRunning = true;
+    }
+
+    public void StopClock()
+    {
+        isRunning = false;
+    }
+
+    public void ResetClock()
+    {
+        whiteTime = initialTime;
+        blackTime = initialTime;
+        UpdateUI();
+        isRunning = true;
+    }
+
+    void UpdateUI()
+    {
+        whiteTimeText.text = FormatTime(whiteTime);
+        blackTimeText.text = FormatTime(blackTime);
+    }
+
+    string FormatTime(float time)
+    {
+        int min = Mathf.FloorToInt(time / 60);
+        int sec = Mathf.FloorToInt(time % 60);
+        return $"{min:00}:{sec:00}";
+    }
+}
+
+========================================
+FILE 13: GameManager.cs
+PATH: Assets/Scripts/Game/Managers/GameManager.cs
+========================================
+using UnityEngine;
+
+public class GameManager : Singleton<GameManager>
+{
+    public void RestartGame()
+    {
+        // 1️⃣ Clear selection
+        SelectionManager.Instance.ClearSelectionExternally();
+
+        // 2️⃣ Clear board
+        BoardManager.Instance.ClearBoard();
+
+        // 3️⃣ Reset UI
+        UIManager.Instance.ResetUI();
+
+        // 4️⃣ Reset turn
+        TurnManager.Instance.ResetTurn();
+
+        // 5️⃣ Respawn pieces
+        PieceSpawner.Instance.SpawnAllPieces();
+
+        // 6️⃣ Reset ChessClock
+        FindFirstObjectByType<ChessClock>().ResetClock();
+
+        Debug.Log("Game Restarted");
+    }
+}
+
+========================================
+FILE 14: IGameMode.cs
+PATH: Assets/Scripts/Game/Modes/IGameMode.cs
+========================================
+using UnityEngine;
+
+public interface IGameMode
+{
+    bool IsMyTurn(TeamColor team);
+    void OnMoveExecuted(Vector2Int from, Vector2Int to);
+}
+
+========================================
+FILE 15: OfflineGameMode.cs
+PATH: Assets/Scripts/Game/Modes/OfflineGameMode.cs
+========================================
+using UnityEngine;
+
+public class OfflineGameMode : IGameMode
+{
+    public bool IsMyTurn(TeamColor team)
+    {
+        return TurnManager.Instance.IsMyTurn(team);
+    }
+
+    public void OnMoveExecuted(Vector2Int from, Vector2Int to)
+    {
+        TurnManager.Instance.SwitchTurn();
+    }
+}
+
+========================================
+FILE 16: OnlineGameMode.cs
+PATH: Assets/Scripts/Game/Modes/OnlineGameMode.cs
+========================================
+using UnityEngine;
+
+public class OnlineGameMode : IGameMode
+{
+    public bool IsMyTurn(TeamColor team)
+    {
+        return OnlineTurnManager.Instance.IsMyTurn();
+    }
+
+    public void OnMoveExecuted(Vector2Int from, Vector2Int to)
+    {
+        PhotonMoveSync.Instance.SendMove(from, to);
+    }
+}
+
+========================================
+FILE 17: Piece.cs
+PATH: Assets/Scripts/Game/Pieces/Piece.cs
+========================================
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
+
+public enum PieceType
+{
+    Pawn,
+    Rook,
+    Knight,
+    Bishop,
+    Queen,
+    King
+}
+
+public enum TeamColor
+{
+    White,
+    Black
+}
+
+public class Piece : MonoBehaviour, IPointerClickHandler
+{
+    public PieceType pieceType;
+    public TeamColor teamColor;
+    public Vector2Int boardPosition;
+    public Image image;
+    public bool justMovedTwoSteps;
+    public bool hasMoved;
+
+
+    public void Init(PieceType type, TeamColor color, Vector2Int pos, Sprite sprite)
+    {
+        pieceType = type;
+        teamColor = color;
+        boardPosition = pos;
+        image.sprite = sprite;
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        SelectionManager sm = SelectionManager.Instance;
+
+        // CASE 1: No piece selected → select this
+        if (sm.selectedPiece == null)
+        {
+            sm.OnPieceSelected(this);
+            return;
+        }
+
+        // CASE 2: Friendly piece clicked → re-select
+        if (sm.selectedPiece.teamColor == teamColor)
+        {
+            sm.OnPieceSelected(this);
+            return;
+        }
+
+        // CASE 3: Enemy piece clicked → capture attempt
+        Tile tile = BoardManager.Instance.GetTileAt(
+            boardPosition.x,
+            boardPosition.y
+        );
+
+        sm.OnTileSelected(tile);
+    }
+
+
+    public bool IsEnemy(Piece other)
+    {
+        return other != null && other.teamColor != teamColor;
+    }
+
+}
+
+========================================
+FILE 18: PieceAnimator.cs
+PATH: Assets/Scripts/Game/Pieces/PieceAnimator.cs
+========================================
+using System.Collections;
+using UnityEngine;
+
+public class PieceAnimator
+{
+    public static IEnumerator MoveTo(RectTransform piece, RectTransform target, float duration = 0.2f)
+    {
+        Vector2 startPos = piece.position;
+        Vector2 endPos = target.position;
+
+        float time = 0f;
+        while (time < 1f)
+        {
+            time += Time.deltaTime / duration;
+            piece.position = Vector2.Lerp(startPos, endPos, time);
+            yield return null;
+        }
+
+        piece.position = endPos;
+    }
+
+    public static IEnumerator CaptureEffect(RectTransform piece, float duration = 0.15f)
+    {
+        float time = 0f;
+        Vector3 startScale = piece.localScale;
+
+        while (time < 1f)
+        {
+            time += Time.deltaTime / duration;
+            piece.localScale = Vector3.Lerp(startScale, Vector3.zero, time);
+            yield return null;
+        }
+    }
+}
+
+========================================
+FILE 19: PieceSpawner.cs
+PATH: Assets/Scripts/Game/Pieces/PieceSpawner.cs
+========================================
+using UnityEngine;
+
+public class PieceSpawner : Singleton<PieceSpawner>
+{
+    [Header("References")]
+
+    public GameObject piecePrefab;
+
+    [Header("White Sprites")]
+    public Sprite whitePawn;
+    public Sprite whiteRook;
+    public Sprite whiteKnight;
+    public Sprite whiteBishop;
+    public Sprite whiteQueen;
+    public Sprite whiteKing;
+
+    [Header("Black Sprites")]
+    public Sprite blackPawn;
+    public Sprite blackRook;
+    public Sprite blackKnight;
+    public Sprite blackBishop;
+    public Sprite blackQueen;
+    public Sprite blackKing;
+
+    // void Start()
+    // {
+    //     SpawnAllPieces();
+    // }
+
+    public void SpawnAllPieces()
+    {
+        // White pieces
+        SpawnTeam(TeamColor.White);
+
+        // Black pieces
+        SpawnTeam(TeamColor.Black);
+    }
+
+    void SpawnTeam(TeamColor team)
+    {
+        int pawnRow = team == TeamColor.White ? 1 : 6;
+        int backRow = team == TeamColor.White ? 0 : 7;
+
+        // Pawns
+        for (int x = 0; x < 8; x++)
+        {
+            SpawnPiece(PieceType.Pawn, team, x, pawnRow);
+        }
+
+        // Rooks
+        SpawnPiece(PieceType.Rook, team, 0, backRow);
+        SpawnPiece(PieceType.Rook, team, 7, backRow);
+
+        // Knights
+        SpawnPiece(PieceType.Knight, team, 1, backRow);
+        SpawnPiece(PieceType.Knight, team, 6, backRow);
+
+        // Bishops
+        SpawnPiece(PieceType.Bishop, team, 2, backRow);
+        SpawnPiece(PieceType.Bishop, team, 5, backRow);
+
+        // Queen
+        SpawnPiece(PieceType.Queen, team, 3, backRow);
+
+        // King
+        SpawnPiece(PieceType.King, team, 4, backRow);
+    }
+
+    void SpawnPiece(PieceType type, TeamColor team, int x, int y)
+    {
+        Tile tile = BoardManager.Instance.GetTileAt(x, y);
+        if (tile == null) return;
+
+        GameObject pieceObj = Instantiate(piecePrefab, tile.transform);
+        Piece piece = pieceObj.GetComponent<Piece>();
+
+        // 🔥 FORCE CENTER POSITION (UI FIX)
+        RectTransform rt = pieceObj.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = Vector2.zero;
+        rt.localScale = Vector3.one;
+
+        Sprite sprite = GetSprite(type, team);
+        piece.Init(type, team, new Vector2Int(x, y), sprite);
+        BoardManager.Instance.SetPieceAt(x, y, piece);
+
+        Debug.Log($"Spawning {type} {team} at {x},{y}");
+    }
+
+
+    Sprite GetSprite(PieceType type, TeamColor team)
+    {
+        if (team == TeamColor.White)
+        {
+            return type switch
+            {
+                PieceType.Pawn => whitePawn,
+                PieceType.Rook => whiteRook,
+                PieceType.Knight => whiteKnight,
+                PieceType.Bishop => whiteBishop,
+                PieceType.Queen => whiteQueen,
+                PieceType.King => whiteKing,
+                _ => null
+            };
+        }
+        else
+        {
+            return type switch
+            {
+                PieceType.Pawn => blackPawn,
+                PieceType.Rook => blackRook,
+                PieceType.Knight => blackKnight,
+                PieceType.Bishop => blackBishop,
+                PieceType.Queen => blackQueen,
+                PieceType.King => blackKing,
+                _ => null
+            };
+        }
+    }
+}
+
+========================================
+FILE 20: PieceView.cs
+PATH: Assets/Scripts/Game/Pieces/PieceView.cs
+========================================
+// EMPTY FILE - Reserved for future piece view implementation
+
+========================================
+FILE 21: CheckEvaluator.cs
+PATH: Assets/Scripts/Game/Rules/CheckEvaluator.cs
+========================================
+using UnityEngine;
+
+public class CheckEvaluator
+{
+    public bool IsKingInCheck(TeamColor team, BoardState board)
+    {
+        Vector2Int kingPos = board.GetKingPosition(team);
+        TeamColor enemy = Opponent(team);
+        return IsSquareUnderAttack(kingPos, enemy, board);
+    }
+
+    public bool IsSquareUnderAttack(
+        Vector2Int square,
+        TeamColor byTeam,
+        BoardState board
+    )
+    {
+        for (int x = 0; x < 8; x++)
+        {
+            for (int y = 0; y < 8; y++)
+            {
+                Piece p = board.GetPieceAt(x, y);
+                if (p == null || p.teamColor != byTeam)
+                    continue;
+
+                if (CanPieceAttackSquare(p, square, board))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    public bool IsMoveSafe(
+        Piece piece,
+        Vector2Int target,
+        BoardState board
+    )
+    {
+        Vector2Int from = piece.boardPosition;
+        Piece captured = board.GetPieceAt(target.x, target.y);
+
+        board.SetPieceAt(from.x, from.y, null);
+        board.SetPieceAt(target.x, target.y, piece);
+        piece.boardPosition = target;
+
+        Vector2Int kingPos =
+            piece.pieceType == PieceType.King
+            ? target
+            : board.GetKingPosition(piece.teamColor);
+
+        bool inCheck = IsSquareUnderAttack(
+            kingPos,
+            Opponent(piece.teamColor),
+            board
+        );
+
+        piece.boardPosition = from;
+        board.SetPieceAt(from.x, from.y, piece);
+        board.SetPieceAt(target.x, target.y, captured);
+
+        return !inCheck;
+    }
+
+    // ================= INTERNAL =================
+
+    bool CanPieceAttackSquare(
+        Piece piece,
+        Vector2Int target,
+        BoardState board
+    )
+    {
+        Vector2Int from = piece.boardPosition;
+
+        switch (piece.pieceType)
+        {
+            case PieceType.Pawn:
+                int dir = piece.teamColor == TeamColor.White ? 1 : -1;
+                return target == from + new Vector2Int(1, dir) ||
+                       target == from + new Vector2Int(-1, dir);
+
+            case PieceType.Knight:
+                Vector2Int[] knightMoves =
+                {
+                    new Vector2Int(1,2), new Vector2Int(2,1),
+                    new Vector2Int(-1,2), new Vector2Int(-2,1),
+                    new Vector2Int(1,-2), new Vector2Int(2,-1),
+                    new Vector2Int(-1,-2), new Vector2Int(-2,-1)
+                };
+                foreach (var m in knightMoves)
+                    if (from + m == target) return true;
+                return false;
+
+            case PieceType.Bishop:
+                return SlidingAttack(from, target, board,
+                    new Vector2Int(1,1), new Vector2Int(1,-1),
+                    new Vector2Int(-1,1), new Vector2Int(-1,-1));
+
+            case PieceType.Rook:
+                return SlidingAttack(from, target, board,
+                    Vector2Int.up, Vector2Int.down,
+                    Vector2Int.left, Vector2Int.right);
+
+            case PieceType.Queen:
+                return SlidingAttack(from, target, board,
+                    Vector2Int.up, Vector2Int.down,
+                    Vector2Int.left, Vector2Int.right,
+                    new Vector2Int(1,1), new Vector2Int(1,-1),
+                    new Vector2Int(-1,1), new Vector2Int(-1,-1));
+
+            case PieceType.King:
+                return Mathf.Abs(from.x - target.x) <= 1 &&
+                       Mathf.Abs(from.y - target.y) <= 1;
+        }
+        return false;
+    }
+
+    bool SlidingAttack(
+        Vector2Int from,
+        Vector2Int target,
+        BoardState board,
+        params Vector2Int[] dirs
+    )
+    {
+        foreach (var dir in dirs)
+        {
+            Vector2Int pos = from;
+            while (true)
+            {
+                pos += dir;
+                if (!Inside(pos)) break;
+
+                Piece block = board.GetPieceAt(pos.x, pos.y);
+                if (pos == target) return true;
+                if (block != null) break;
+            }
+        }
+        return false;
+    }
+
+    bool Inside(Vector2Int pos)
+    {
+        return pos.x >= 0 && pos.x < 8 && pos.y >= 0 && pos.y < 8;
+    }
+
+    TeamColor Opponent(TeamColor t)
+    {
+        return t == TeamColor.White ? TeamColor.Black : TeamColor.White;
+    }
+}
+
+========================================
+FILE 22: ChessRules.cs
+PATH: Assets/Scripts/Game/Rules/ChessRules.cs
+========================================
+using UnityEngine;
+
+public class ChessRules : IChessRules
+{
+    private readonly CastlingRule castlingRule;
+    private readonly EnPassantRule enPassantRule;
+    private readonly PromotionRule promotionRule;
+
+    private readonly CheckEvaluator checkEvaluator;
+
+    public ChessRules()
+    {
+        checkEvaluator = new CheckEvaluator();
+        castlingRule = new CastlingRule(checkEvaluator);
+        enPassantRule = new EnPassantRule();
+        promotionRule = new PromotionRule();
+    }
+
+
+    public bool IsSquareUnderAttack(
+        Vector2Int square,
+        TeamColor byTeam,
+        BoardState board
+    )
+    {
+        return checkEvaluator.IsSquareUnderAttack(square, byTeam, board);
+    }
+
+    public bool IsMoveSafe(
+        Piece piece,
+        Vector2Int target,
+        BoardState board
+    )
+    {
+        return checkEvaluator.IsMoveSafe(piece, target, board);
+    }
+
+    public bool IsKingInCheck(
+        TeamColor team,
+        BoardState board
+    )
+    {
+        return checkEvaluator.IsKingInCheck(team, board);
+    }
+    public MoveData CreateMove(
+    Piece piece,
+    Vector2Int target,
+    BoardState board
+)
+    {
+        MoveData move = new MoveData
+        {
+            piece = piece,
+            from = piece.boardPosition,
+            to = target
+        };
+
+        Piece targetPiece = board.GetPieceAt(target.x, target.y);
+
+        // Normal capture
+        if (targetPiece != null && piece.IsEnemy(targetPiece))
+        {
+            move.isCapture = true;
+            move.capturedPiecePos = target;
+        }
+
+        // En Passant
+        enPassantRule.Apply(move, board);
+
+        // Castling
+        castlingRule.Apply(move, board);
+
+        // Promotion
+        promotionRule.Apply(move, board);
+
+        return move;
+    }
+
+}
+
+========================================
+FILE 23: IChessRules.cs
+PATH: Assets/Scripts/Game/Rules/IChessRules.cs
+========================================
+using UnityEngine;
+
+public interface IChessRules
+{
+    bool IsSquareUnderAttack(
+        Vector2Int square,
+        TeamColor byTeam,
+        BoardState board
+    );
+
+    bool IsMoveSafe(
+        Piece piece,
+        Vector2Int target,
+        BoardState board
+    );
+
+    bool IsKingInCheck(
+        TeamColor team,
+        BoardState board
+    );
+    MoveData CreateMove(
+            Piece piece,
+            Vector2Int target,
+            BoardState board
+        );
+}
+
+========================================
+FILE 24: MoveData.cs
+PATH: Assets/Scripts/Game/Rules/MoveData.cs
+========================================
+using UnityEngine;
+
+public class MoveData
+{
+    public Piece piece;
+    public Vector2Int from;
+    public Vector2Int to;
+
+    // Special flags
+    public bool isCapture;
+    public bool isEnPassant;
+    public bool isCastling;
+    public bool isPromotion;
+
+    // Extra data
+    public Vector2Int capturedPiecePos;
+    public Vector2Int rookFrom;
+    public Vector2Int rookTo;
+}
+
+========================================
+FILE 25: MoveGenerator.cs
+PATH: Assets/Scripts/Game/Rules/MoveGenerator.cs
+========================================
+using System.Collections.Generic;
+using UnityEngine;
+
+public class MoveGenerator
+{
+    private readonly IChessRules rules;
+
+    public MoveGenerator(IChessRules rules)
+    {
+        this.rules = rules;
+    }
+
+    public HashSet<Vector2Int> GetLegalMoves(
+        Piece piece,
+        BoardState board
+    )
+    {
+        HashSet<Vector2Int> moves = new HashSet<Vector2Int>();
+
+        switch (piece.pieceType)
+        {
+            case PieceType.Pawn:
+                GeneratePawnMoves(piece, board, moves);
+                break;
+
+            case PieceType.Rook:
+                GenerateLinear(piece, board, moves,
+                    Vector2Int.up, Vector2Int.down,
+                    Vector2Int.left, Vector2Int.right);
+                break;
+
+            case PieceType.Bishop:
+                GenerateLinear(piece, board, moves,
+                    new Vector2Int(1, 1), new Vector2Int(1, -1),
+                    new Vector2Int(-1, 1), new Vector2Int(-1, -1));
+                break;
+
+            case PieceType.Queen:
+                GenerateLinear(piece, board, moves,
+                    Vector2Int.up, Vector2Int.down,
+                    Vector2Int.left, Vector2Int.right,
+                    new Vector2Int(1, 1), new Vector2Int(1, -1),
+                    new Vector2Int(-1, 1), new Vector2Int(-1, -1));
+                break;
+
+            case PieceType.Knight:
+                GenerateKnight(piece, board, moves);
+                break;
+
+            case PieceType.King:
+                GenerateKing(piece, board, moves);
+                break;
+        }
+
+        return moves;
+    }
+
+    // ================= PAWN =================
+
+    void GeneratePawnMoves(
+        Piece piece,
+        BoardState board,
+        HashSet<Vector2Int> moves
+    )
+    {
+        int dir = piece.teamColor == TeamColor.White ? 1 : -1;
+        int startRow = piece.teamColor == TeamColor.White ? 1 : 6;
+
+        int x = piece.boardPosition.x;
+        int y = piece.boardPosition.y;
+
+        // Forward
+        if (board.GetPieceAt(x, y + dir) == null)
+        {
+            TryAdd(piece, board, moves, new Vector2Int(x, y + dir));
+
+            if (y == startRow &&
+                board.GetPieceAt(x, y + dir * 2) == null)
+            {
+                TryAdd(piece, board, moves,
+                    new Vector2Int(x, y + dir * 2));
+            }
+        }
+
+        // Capture
+        TryCapture(piece, board, moves, x - 1, y + dir);
+        TryCapture(piece, board, moves, x + 1, y + dir);
+    }
+
+    // ================= LINEAR =================
+
+    void GenerateLinear(
+        Piece piece,
+        BoardState board,
+        HashSet<Vector2Int> moves,
+        params Vector2Int[] dirs
+    )
+    {
+        foreach (var dir in dirs)
+        {
+            Vector2Int pos = piece.boardPosition;
+
+            while (true)
+            {
+                pos += dir;
+                if (!Inside(pos)) break;
+
+                Piece target = board.GetPieceAt(pos.x, pos.y);
+
+                if (target == null)
+                {
+                    TryAdd(piece, board, moves, pos);
+                }
+                else
+                {
+                    if (piece.IsEnemy(target))
+                        TryAdd(piece, board, moves, pos);
+                    break;
+                }
+            }
+        }
+    }
+
+    // ================= KNIGHT =================
+
+    void GenerateKnight(
+        Piece piece,
+        BoardState board,
+        HashSet<Vector2Int> moves
+    )
+    {
+        Vector2Int[] offsets =
+        {
+            new Vector2Int(1,2), new Vector2Int(2,1),
+            new Vector2Int(-1,2), new Vector2Int(-2,1),
+            new Vector2Int(1,-2), new Vector2Int(2,-1),
+            new Vector2Int(-1,-2), new Vector2Int(-2,-1)
+        };
+
+        foreach (var o in offsets)
+            TryAdd(piece, board, moves, piece.boardPosition + o);
+    }
+
+    // ================= KING =================
+
+    void GenerateKing(Piece piece, BoardState board, HashSet<Vector2Int> moves)
+    {
+        Vector2Int from = piece.boardPosition;
+
+        // Normal king moves (1 square only)
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                if (dx == 0 && dy == 0) continue;
+
+                Vector2Int target = from + new Vector2Int(dx, dy);
+
+                // Block moving next to enemy king
+                if (IsAdjacentToEnemyKing(piece, target, board))
+                    continue;
+
+                TryAdd(piece, board, moves, target);
+            }
+
+        // Castling (handled explicitly)
+        TryAddCastling(piece, board, moves, true);  // King side
+        TryAddCastling(piece, board, moves, false); // Queen side
+    }
+
+    void TryAddCastling(
+        Piece king,
+        BoardState board,
+        HashSet<Vector2Int> moves,
+        bool kingSide
+    )
+    {
+        if (king.hasMoved) return;
+
+        int y = king.boardPosition.y;
+        int dir = kingSide ? 1 : -1;
+
+        Vector2Int f1 = king.boardPosition + new Vector2Int(dir, 0);
+        Vector2Int f2 = king.boardPosition + new Vector2Int(dir * 2, 0);
+
+        // Squares must be empty
+        if (board.GetPieceAt(f1.x, f1.y) != null) return;
+        if (board.GetPieceAt(f2.x, f2.y) != null) return;
+
+        // Safety handled by rules.IsMoveSafe
+        if (rules.IsMoveSafe(king, f2, board))
+            moves.Add(f2);
+    }
+
+    bool IsAdjacentToEnemyKing(
+        Piece king,
+        Vector2Int target,
+        BoardState board
+    )
+    {
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                if (dx == 0 && dy == 0) continue;
+
+                Vector2Int pos = target + new Vector2Int(dx, dy);
+                if (pos.x < 0 || pos.x > 7 || pos.y < 0 || pos.y > 7)
+                    continue;
+
+                Piece p = board.GetPieceAt(pos.x, pos.y);
+                if (p != null &&
+                    p.pieceType == PieceType.King &&
+                    p.teamColor != king.teamColor)
+                    return true;
+            }
+
+        return false;
+    }
+
+
+
+    // ================= HELPERS =================
+
+    void TryAdd(
+        Piece piece,
+        BoardState board,
+        HashSet<Vector2Int> moves,
+        Vector2Int pos
+    )
+    {
+        if (!Inside(pos)) return;
+
+        Piece target = board.GetPieceAt(pos.x, pos.y);
+        if (target != null && !piece.IsEnemy(target))
+            return;
+
+        if (rules.IsMoveSafe(piece, pos, board))
+            moves.Add(pos);
+    }
+
+    void TryCapture(
+        Piece piece,
+        BoardState board,
+        HashSet<Vector2Int> moves,
+        int x, int y
+    )
+    {
+        if (!Inside(new Vector2Int(x, y))) return;
+
+        Piece target = board.GetPieceAt(x, y);
+        if (target != null && piece.IsEnemy(target))
+            TryAdd(piece, board, moves, new Vector2Int(x, y));
+    }
+
+    bool Inside(Vector2Int pos)
+    {
+        return pos.x >= 0 && pos.x < 8 && pos.y >= 0 && pos.y < 8;
+    }
+}
+
+========================================
+FILE 26: CastlingRule.cs
+PATH: Assets/Scripts/Game/Rules/SpecialMoves/CastlingRule.cs
+========================================
+using UnityEngine;
+
+public class CastlingRule
+{
+    private readonly CheckEvaluator check;
+
+    public CastlingRule(CheckEvaluator evaluator)
+    {
+        check = evaluator;
+    }
+
+    public void Apply(MoveData move, BoardState board)
+    {
+        if (move.piece.pieceType != PieceType.King)
+            return;
+
+        if (move.piece.hasMoved)
+            return;
+
+        int dx = move.to.x - move.from.x;
+        if (Mathf.Abs(dx) != 2)
+            return;
+
+        TeamColor team = move.piece.teamColor;
+        int y = move.from.y;
+        bool kingSide = dx > 0;
+
+        int rookX = kingSide ? 7 : 0;
+        Piece rook = board.GetPieceAt(rookX, y);
+
+        if (rook == null ||
+            rook.pieceType != PieceType.Rook ||
+            rook.teamColor != team ||
+            rook.hasMoved)
+            return;
+
+        // King must not be in check
+        if (check.IsKingInCheck(team, board))
+            return;
+
+        int step = kingSide ? 1 : -1;
+        int x = move.from.x;
+
+        // Squares between king & rook
+        for (int i = 1; i <= 2; i++)
+        {
+            Vector2Int pos = new Vector2Int(x + step * i, y);
+
+            if (board.GetPieceAt(pos.x, pos.y) != null)
+                return;
+
+            if (check.IsSquareUnderAttack(pos,
+                team == TeamColor.White ? TeamColor.Black : TeamColor.White,
+                board))
+                return;
+        }
+
+        move.isCastling = true;
+        move.rookFrom = new Vector2Int(rookX, y);
+        move.rookTo = new Vector2Int(move.to.x - step, y);
+    }
+}
+
+========================================
+FILE 27: EnPassantRule.cs
+PATH: Assets/Scripts/Game/Rules/SpecialMoves/EnPassantRule.cs
+========================================
+using UnityEngine;
+
+public class EnPassantRule
+{
+    public void Apply(MoveData move, BoardState board)
+    {
+        if (move.piece.pieceType != PieceType.Pawn)
+            return;
+
+        if (board.GetPieceAt(move.to.x, move.to.y) != null)
+            return;
+
+        int dir = move.piece.teamColor == TeamColor.White ? -1 : 1;
+
+        Piece pawn =
+            board.GetPieceAt(move.to.x, move.to.y + dir);
+
+        if (pawn == null ||
+            pawn.pieceType != PieceType.Pawn ||
+            !pawn.justMovedTwoSteps)
+            return;
+
+        move.isEnPassant = true;
+        move.isCapture = true;
+        move.capturedPiecePos =
+            new Vector2Int(move.to.x, move.to.y + dir);
+    }
+}
+
+========================================
+FILE 28: PromotionRule.cs
+PATH: Assets/Scripts/Game/Rules/SpecialMoves/PromotionRule.cs
+========================================
+public class PromotionRule
+{
+    public void Apply(MoveData move, BoardState board)
+    {
+        if (move.piece.pieceType != PieceType.Pawn)
+            return;
+
+        if (move.to.y == 0 || move.to.y == 7)
+        {
+            move.isPromotion = true;
+        }
+    }
+}
+
+========================================
+FILE 29: CommonPopupController.cs
+PATH: Assets/Scripts/Game/UI/CommonPopupController.cs
+========================================
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using UnityEngine.SceneManagement;
+
+public class CommonPopupController : Singleton<CommonPopupController>
+{
+    [Header("Popup UI")]
+    public GameObject popupRoot;
+    public TMP_Text titleText;
+    public TMP_Text messageText;
+    public Button leftButton;
+    public Button rightButton;
+    public TMP_Text leftButtonText;
+    public TMP_Text rightButtonText;
+
+    void Start()
+    {
+        popupRoot.SetActive(false);
+    }
+
+    // ================= DRAW =================
+    public void ShowDrawConfirm()
+    {
+        ShowPopup(
+            "Draw Match?",
+            "Do you want to declare a draw?",
+            "No",
+            "Yes",
+            ClosePopup,
+            () =>
+            {
+                MatchController.Instance.DeclareDraw();
+                ClosePopup();
+                ShowResult("Draw");
+            }
+        );
+    }
+
+    // ================= RESIGN =================
+    public void ShowResignConfirm()
+    {
+        ShowPopup(
+            "Resign Game?",
+            "Are you sure you want to resign?",
+            "No",
+            "Yes",
+            ClosePopup,
+            () =>
+            {
+                TeamColor resigning = TurnManager.Instance.currentTurn;
+                MatchController.Instance.Resign(resigning);
+                ClosePopup();
+                ShowResult(
+                    resigning == TeamColor.White
+                        ? "Black Wins (Resign)"
+                        : "White Wins (Resign)"
+                );
+            }
+        );
+    }
+
+    // ================= EXIT =================
+    public void ShowExitConfirm()
+    {
+        ShowPopup(
+            "Exit Game?",
+            "Your progress will be lost.",
+            "No",
+            "Yes",
+            ClosePopup,
+            () =>
+            {
+                SceneLoader.Instance.LoadScene(SceneLoader.SceneType.MainMenu);
+            }
+        );
+    }
+
+    // ================= RESULT =================
+    public void ShowResult(string resultTextValue)
+    {
+        ShowPopup(
+            "Game Over",
+            resultTextValue,
+            "Exit",
+            "Restart",
+            () =>
+            {
+                SceneManager.LoadScene("MainMenuScene");
+            },
+            () =>
+            {
+                GameManager.Instance.RestartGame();
+                ClosePopup();
+            }
+        );
+    }
+
+    // ================= CORE =================
+    void ShowPopup(
+        string title,
+        string message,
+        string leftTxt,
+        string rightTxt,
+        UnityEngine.Events.UnityAction leftAction,
+        UnityEngine.Events.UnityAction rightAction
+    )
+    {
+        popupRoot.SetActive(true);
+
+        titleText.text = title;
+        messageText.text = message;
+
+        leftButtonText.text = leftTxt;
+        rightButtonText.text = rightTxt;
+
+        leftButton.onClick.RemoveAllListeners();
+        rightButton.onClick.RemoveAllListeners();
+
+        leftButton.onClick.AddListener(leftAction);
+        rightButton.onClick.AddListener(rightAction);
+    }
+
+    public void ClosePopup()
+    {
+        popupRoot.SetActive(false);
+    }
+}
+
+========================================
+FILE 30: OnlineUIBinder.cs
+PATH: Assets/Scripts/Game/UI/OnlineUIBinder.cs
+========================================
+using UnityEngine;
+using TMPro;
+
+public class OnlineUIBinder : MonoBehaviour
+{
+    [Header("Header UI")]
+    [SerializeField] private TMP_Text whitePlayerNameText;
+    [SerializeField] private TMP_Text blackPlayerNameText;
+
+    void Start()
+    {
+        BindPlayerNames();
+    }
+
+    void BindPlayerNames()
+    {
+        whitePlayerNameText.text = PhotonPlayerData.WhitePlayerName;
+        blackPlayerNameText.text = PhotonPlayerData.BlackPlayerName;
+    }
+}
+
+========================================
+FILE 31: TileHighlight.cs
+PATH: Assets/Scripts/Game/UI/TileHighlight.cs
+========================================
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class TileHighlight : Singleton<TileHighlight>
+{
+    public Image selectedTileHighlight;
+    public Image moveHighlight;
+    public Image captureHighlight;
+
+    [Header("Last Move")]
+    public Image lastMoveHighlight;   // 👈 NEW PREFAB
+
+    private List<Image> activeMarks = new List<Image>();
+    private List<Image> lastMoveMarks = new List<Image>(); // 👈 NEW
+
+    public void HighlightSelectedTile(Tile tile)
+    {
+        CreateMark(tile, selectedTileHighlight, activeMarks);
+    }
+
+    public void HighlightMoveTile(Tile tile)
+    {
+        CreateMark(tile, moveHighlight, activeMarks);
+    }
+
+    public void HighlightCaptureTile(Tile tile)
+    {
+        CreateMark(tile, captureHighlight, activeMarks);
+    }
+
+    // ================= LAST MOVE =================
+
+    public void HighlightLastMove(Tile fromTile, Tile toTile)
+    {
+        ClearLastMoveHighlight();
+
+        CreateMark(fromTile, lastMoveHighlight, lastMoveMarks);
+        CreateMark(toTile, lastMoveHighlight, lastMoveMarks);
+    }
+
+    public void ClearLastMoveHighlight()
+    {
+        foreach (var mark in lastMoveMarks)
+        {
+            Destroy(mark.gameObject);
+        }
+        lastMoveMarks.Clear();
+    }
+
+    // ================= CORE =================
+
+    void CreateMark(Tile tile, Image prefab, List<Image> list)
+    {
+        Image mark = Instantiate(prefab, tile.transform);
+        RectTransform rt = mark.rectTransform;
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = Vector2.zero;
+        rt.localScale = Vector3.one;
+
+        list.Add(mark);
+    }
+
+    public void ClearAll()
+    {
+        foreach (var mark in activeMarks)
+        {
+            Destroy(mark.gameObject);
+        }
+        activeMarks.Clear();
+    }
+}
+
+========================================
+FILE 32: UIButtonStyler.cs
+PATH: Assets/Scripts/Game/UI/UIButtonStyler.cs
+========================================
+using UnityEngine;
+using UnityEngine.UI;
+
+[RequireComponent(typeof(Button))]
+public class UIButtonStyler : MonoBehaviour
+{
+    void Awake()
+    {
+        Button btn = GetComponent<Button>();
+        ColorBlock cb = btn.colors;
+
+        cb.normalColor = Hex("#4F46E5");
+        cb.highlightedColor = Hex("#4338CA");
+        cb.pressedColor = Hex("#3730A3");
+        cb.selectedColor = cb.highlightedColor;
+        cb.disabledColor = new Color(0.4f, 0.4f, 0.4f);
+
+        btn.colors = cb;
+
+        TMPFix();
+    }
+
+    void TMPFix()
+    {
+        TMPro.TMP_Text t = GetComponentInChildren<TMPro.TMP_Text>();
+        if (t != null)
+            t.color = Hex("#F9FAFB");
+    }
+
+    Color Hex(string h)
+    {
+        ColorUtility.TryParseHtmlString(h, out Color c);
+        return c;
+    }
+}
+
+========================================
+FILE 33: UIManager.cs
+PATH: Assets/Scripts/Game/UI/UIManager.cs
+========================================
+using System.Collections;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+public class UIManager : Singleton<UIManager>
+{
+    private Color NORMAL;
+    private Color CHECK;
+    private Color CHECKMATE;
+    private Color STALEMATE;
+
+    Coroutine statusRoutine;
+    private WaitForSeconds _twoSecondWait;
+
+    [Header("Footer")]
+    public TMP_Text turnText;
+    public TMP_Text statusText;
+
+    [Header("Captured Pieces")]
+    public Transform whiteCapturedGrid;
+    public Transform blackCapturedGrid;
+    public GameObject capturedPiecePrefab;
+    [SerializeField] private Button exitButton;
+
+    // Result popup is now handled by CommonPopupController
+
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        NORMAL = Hex("#9CA3AF");
+        CHECK = Hex("#F97316");
+        CHECKMATE = Hex("#DC2626");
+        STALEMATE = Hex("#6B7280");
+
+        // Restart button wiring removed; restart handled by CommonPopupController result popup
+
+
+        _twoSecondWait = new WaitForSeconds(2f);
+        exitButton.onClick.RemoveAllListeners();
+        exitButton.onClick.AddListener(OnBack);
+
+    }
+    void OnEnable()
+    {
+        NavigationBack.OnBackRequested += HandleBack;
+    }
+
+    void OnDisable()
+    {
+        NavigationBack.OnBackRequested -= HandleBack;
+    }
+    void Start()
+    {
+        ResetUI();
+    }
+
+    #region TURN & STATUS
+
+    public void UpdateTurnUI(TeamColor turn)
+    {
+        turnText.text = turn == TeamColor.White ? "White to Move" : "Black to Move";
+    }
+
+    public void ShowCheck()
+    {
+        SetStatus("Check", CHECK, true);
+    }
+
+    public void ShowCheckmate()
+    {
+        SetStatus("Checkmate", CHECKMATE, false);
+    }
+
+    public void ShowStalemate()
+    {
+        SetStatus("Stalemate", STALEMATE, false);
+    }
+
+    public void ClearStatus()
+    {
+        if (statusRoutine != null)
+            StopCoroutine(statusRoutine);
+
+        statusText.text = "";
+    }
+
+    void SetStatus(string msg, Color col, bool autoClear)
+    {
+        if (statusRoutine != null)
+            StopCoroutine(statusRoutine);
+
+        statusText.text = msg;
+        statusText.color = col;
+
+        if (autoClear)
+            statusRoutine = StartCoroutine(AutoClear());
+    }
+
+    IEnumerator AutoClear()
+    {
+        yield return _twoSecondWait;
+        statusText.text = "";
+    }
+
+    #endregion
+
+    #region CAPTURED PIECES
+
+    public void AddCapturedPiece(Piece piece)
+    {
+        Transform grid =
+            piece.teamColor == TeamColor.White
+            ? blackCapturedGrid
+            : whiteCapturedGrid;
+
+        GameObject icon = Instantiate(capturedPiecePrefab, grid);
+        icon.GetComponent<Image>().sprite = piece.image.sprite;
+    }
+
+    #endregion
+
+    public void ResetUI()
+    {
+        statusText.text = "";
+        statusText.color = NORMAL;
+
+        turnText.text = "White to Move";
+
+        ClearGrid(whiteCapturedGrid);
+        ClearGrid(blackCapturedGrid);
+    }
+
+    void ClearGrid(Transform t)
+    {
+        for (int i = t.childCount - 1; i >= 0; i--)
+            Destroy(t.GetChild(i).gameObject);
+    }
+
+    Color Hex(string h)
+    {
+        ColorUtility.TryParseHtmlString(h, out Color c);
+        return c;
+    }
+
+    private void OnBack()
+    {
+        HandleBack();
+    }
+
+    private bool HandleBack()
+    {
+        CommonPopupController.Instance.ShowExitConfirm();
+        return true; // Back handled, do NOT propagate
+    }
+
+}
+
+========================================
+FILE 34: OnlineGameManager.cs
+PATH: Assets/Scripts/Networking/OnlineGameManager.cs
+========================================
+using Photon.Pun;
+using UnityEngine;
+
+public class OnlineGameManager : MonoBehaviour
+{
+    void Awake()
+    {
+        // Decide white / black as soon as scene loads
+        PhotonPlayerData.DecideSide();
+
+    }
+
+    void Start()
+    {
+        Debug.Log($"Local Side: {PhotonPlayerData.LocalSide}");
+        Debug.Log($"White: {PhotonPlayerData.WhitePlayerName}");
+        Debug.Log($"Black: {PhotonPlayerData.BlackPlayerName}");
+    }
+}
+
+========================================
+FILE 35: OnlineTurnManager.cs
+PATH: Assets/Scripts/Networking/OnlineTurnManager.cs
+========================================
+using Photon.Pun;
+using UnityEngine;
+
+public class OnlineTurnManager : MonoBehaviourPun
+{
+    public static OnlineTurnManager Instance;
+
+    public TeamColor CurrentTurn { get; private set; }
+
+    void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    void Start()
+    {
+        InitializeTurn();
+    }
+
+    // ================= INIT =================
+
+    void InitializeTurn()
+    {
+        // White always starts
+        CurrentTurn = TeamColor.White;
+
+        UpdateTurnUI();
+    }
+
+    // ================= AUTHORITY =================
+
+    public bool IsMyTurn()
+    {
+        TeamColor myColor =
+            PhotonPlayerData.LocalSide == PlayerSide.White
+                ? TeamColor.White
+                : TeamColor.Black;
+
+        return CurrentTurn == myColor;
+    }
+
+    // ================= TURN SWITCH =================
+
+    public void EndTurn()
+    {
+        // Only the player who made the move can request turn end
+        if (!IsMyTurn())
+            return;
+
+        photonView.RPC(nameof(RPC_SwitchTurn), RpcTarget.All);
+    }
+
+    [PunRPC]
+    void RPC_SwitchTurn()
+    {
+        CurrentTurn =
+            CurrentTurn == TeamColor.White
+                ? TeamColor.Black
+                : TeamColor.White;
+
+        UpdateTurnUI();
+    }
+
+    // ================= UI =================
+
+    void UpdateTurnUI()
+    {
+        // We don't enable UIManager fully yet,
+        // but this keeps things future-safe
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdateTurnUI(CurrentTurn);
+        }
+    }
+}
+
+========================================
+FILE 36: PhotonManager.cs
+PATH: Assets/Scripts/Networking/PhotonManager.cs
+========================================
+using Photon.Pun;
+using Photon.Realtime;
+using UnityEngine;
+
+public class PhotonManager : Singleton<PhotonManager>, IConnectionCallbacks, ILobbyCallbacks
+{
+    [Header("Photon Settings")]
+    [SerializeField] private string gameVersion = "1.0";
+
+    public bool IsConnected => PhotonNetwork.IsConnected;
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        PhotonNetwork.AutomaticallySyncScene = true;
+        PhotonNetwork.AddCallbackTarget(this);
+
+        PhotonNetwork.KeepAliveInBackground = 60;
+    }
+
+    void OnDestroy()
+    {
+        PhotonNetwork.RemoveCallbackTarget(this);
+    }
+
+    // ================= CONNECT =================
+
+    public void Connect()
+    {
+        if (PhotonNetwork.IsConnected)
+            return;
+
+        GlobalLoaderController.Instance.Show();
+
+        PhotonNetwork.NickName = PlayerData.Name;
+
+        PhotonNetwork.GameVersion = gameVersion;
+        PhotonNetwork.ConnectUsingSettings();
+    }
+
+    public void Disconnect()
+    {
+        if (PhotonNetwork.IsConnected)
+            PhotonNetwork.Disconnect();
+    }
+
+    // ================= CALLBACKS =================
+
+    public void OnConnectedToMaster()
+    {
+        Debug.Log("Connected to Master");
+
+        //  CRITICAL FIX
+        PhotonNetwork.JoinLobby();
+    }
+
+    public void OnJoinedLobby()
+    {
+        Debug.Log("Joined Default Lobby");
+        GlobalLoaderController.Instance.Hide();
+    }
+
+    public void OnDisconnected(DisconnectCause cause)
+    {
+        Debug.LogWarning($"Disconnected: {cause}");
+    }
+
+    public void OnConnected() { }
+    public void OnRegionListReceived(RegionHandler regionHandler) { }
+    public void OnCustomAuthenticationResponse(
+        System.Collections.Generic.Dictionary<string, object> data)
+    { }
+    public void OnCustomAuthenticationFailed(string debugMessage) { }
+    public void OnLeftLobby() { }
+    public void OnRoomListUpdate(System.Collections.Generic.List<RoomInfo> roomList) { }
+    public void OnLobbyStatisticsUpdate(System.Collections.Generic.List<TypedLobbyInfo> lobbyStatistics) { }
+}
+
+========================================
+FILE 37: PhotonMoveSync.cs
+PATH: Assets/Scripts/Networking/PhotonMoveSync.cs
+========================================
+using Photon.Pun;
+using UnityEngine;
+
+public class PhotonMoveSync : MonoBehaviourPun
+{
+    public static PhotonMoveSync Instance;
+
+    void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    // =========================================================
+    // CALLED BY LOCAL PLAYER AFTER A LEGAL MOVE
+    // =========================================================
+    public void SendMove(Vector2Int from, Vector2Int to)
+    {
+        // Only current-turn player can send
+        if (!OnlineTurnManager.Instance.IsMyTurn())
+            return;
+
+        photonView.RPC(
+            nameof(RPC_ReceiveMove),
+            RpcTarget.Others,
+            from.x, from.y,
+            to.x, to.y
+        );
+
+        // End local turn AFTER sending
+        OnlineTurnManager.Instance.EndTurn();
+    }
+
+    // =========================================================
+    // RECEIVED BY REMOTE PLAYER
+    // =========================================================
+    [PunRPC]
+    void RPC_ReceiveMove(int fromX, int fromY, int toX, int toY)
+    {
+        ApplyRemoteMove(
+            new Vector2Int(fromX, fromY),
+            new Vector2Int(toX, toY)
+        );
+
+        // End turn for remote side
+        OnlineTurnManager.Instance.EndTurn();
+    }
+
+    // =========================================================
+    // APPLY MOVE WITHOUT RE-SENDING
+    // =========================================================
+    void ApplyRemoteMove(Vector2Int from, Vector2Int to)
+    {
+        Piece piece =
+            BoardManager.Instance.GetPieceAt(from.x, from.y);
+
+        if (piece == null)
+            return;
+
+        MoveExecutor.Instance.ExecuteMove(
+            piece,
+            to,
+            true
+        );
+    }
+
+}
+
+========================================
+FILE 38: PhotonPlayerData.cs
+PATH: Assets/Scripts/Networking/PhotonPlayerData.cs
+========================================
+using Photon.Pun;
+using Photon.Realtime;
+
+public enum PlayerSide
+{
+    White,
+    Black
+}
+
+public static class PhotonPlayerData
+{
+    public static bool IsHost { get; private set; }
+    public static PlayerSide LocalSide { get; private set; }
+
+    public static void SetHost()
+    {
+        IsHost = true;
+    }
+
+    public static void SetJoiner()
+    {
+        IsHost = false;
+    }
+
+    public static void Reset()
+    {
+        IsHost = false;
+        LocalSide = PlayerSide.White;
+    }
+
+    // ---------- SIDE DECISION ----------
+
+    public static void DecideSide()
+    {
+        LocalSide = PhotonNetwork.IsMasterClient
+            ? PlayerSide.White
+            : PlayerSide.Black;
+    }
+
+    // ---------- HELPERS ----------
+
+    public static string LocalNickName =>
+        PhotonNetwork.NickName;
+
+    public static string WhitePlayerName =>
+        PhotonNetwork.IsMasterClient
+            ? PhotonNetwork.MasterClient.NickName
+            : GetOtherPlayer().NickName;
+
+    public static string BlackPlayerName =>
+        PhotonNetwork.IsMasterClient
+            ? GetOtherPlayer().NickName
+            : PhotonNetwork.MasterClient.NickName;
+
+    static Player GetOtherPlayer()
+    {
+        Player[] players = PhotonNetwork.PlayerList;
+        return players[0] == PhotonNetwork.MasterClient
+            ? players[1]
+            : players[0];
+    }
+}
+
+========================================
+FILE 39: PhotonRoomManager.cs
+PATH: Assets/Scripts/Networking/PhotonRoomManager.cs
+========================================
+using Photon.Pun;
+using Photon.Realtime;
+using UnityEngine;
+using System;
+
+public class PhotonRoomManager : MonoBehaviourPunCallbacks
+{
+    public static PhotonRoomManager Instance;
+
+    public event Action<string> RoomCreated;
+    public event Action<string> RoomJoined;
+    public event Action<string> PlayerJoined;
+
+    void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    // ================= CREATE =================
+
+    public void CreateRoom()
+    {
+        if (!PhotonNetwork.IsConnectedAndReady)
+        {
+            Debug.LogError("Photon not ready");
+            return;
+        }
+
+        PhotonPlayerData.SetHost();
+
+        string roomCode = GenerateRoomCode();
+
+        RoomOptions options = new RoomOptions
+        {
+            MaxPlayers = 2,
+            IsVisible = false,
+            IsOpen = true
+        };
+
+        PhotonNetwork.CreateRoom(roomCode, options);
+    }
+
+    // ================= JOIN =================
+
+    public void JoinRoom(string code)
+    {
+        if (!PhotonNetwork.IsConnectedAndReady)
+        {
+            Debug.LogError("Photon not ready");
+            return;
+        }
+
+        PhotonPlayerData.SetJoiner();
+        PhotonNetwork.JoinRoom(code);
+    }
+
+    // ================= START =================
+
+    public void StartGame()
+    {
+        if (!PhotonNetwork.IsMasterClient)
+            return;
+
+        PhotonNetwork.LoadLevel("OnlineGameScene");
+    }
+
+    // ================= CALLBACKS =================
+
+    public override void OnCreatedRoom()
+    {
+        Debug.Log("Room Created");
+        GlobalLoaderController.Instance.Hide();
+        RoomCreated?.Invoke(PhotonNetwork.CurrentRoom.Name);
+    }
+
+    public override void OnJoinedRoom()
+    {
+        Debug.Log("Joined Room");
+
+        RoomJoined?.Invoke(PhotonNetwork.CurrentRoom.Name);
+        PlayerJoined?.Invoke(null);
+    }
+
+    public override void OnPlayerEnteredRoom(Player newPlayer)
+    {
+        PlayerJoined?.Invoke(newPlayer.NickName);
+    }
+
+    public override void OnJoinRoomFailed(short returnCode, string message)
+    {
+        Debug.LogError(message);
+        GlobalLoaderController.Instance.Hide();
+    }
+
+    // ================= UTILS =================
+
+    string GenerateRoomCode()
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        string code = "";
+
+        for (int i = 0; i < 6; i++)
+            code += chars[UnityEngine.Random.Range(0, chars.Length)];
+
+        return code;
+    }
+}
+
+================================================================================
+                            END OF SCRIPTS
+================================================================================
+
+
+
+issue: 
+
+online me dono player ka turn aana chahiye but ye offline ki trh hi behave kr rha h second player ko turn mil hi ni rha 
+
+
+turn wala issue ache se clear kr 
+
+“Start Phase 6 — Online Turn & Clock Sync
+
+Complete code for updated script
+turn manager Online me attached nahi hai 

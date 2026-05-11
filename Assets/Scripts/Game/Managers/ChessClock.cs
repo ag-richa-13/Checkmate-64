@@ -24,27 +24,24 @@ public class ChessClock : MonoBehaviour
     {
         if (!isRunning) return;
 
-        if (TurnManager.Instance.currentTurn == TeamColor.White)
-        {
+        TeamColor turn =
+            GameContext.Instance.GameMode is OnlineGameMode
+                ? OnlineTurnManager.Instance.CurrentTurn
+                : TurnManager.Instance.currentTurn;
+
+        if (turn == TeamColor.White)
             whiteTime -= Time.deltaTime;
-            if (whiteTime <= 0)
-            {
-                whiteTime = 0;
-                TimeUp(TeamColor.White);
-            }
-        }
         else
-        {
             blackTime -= Time.deltaTime;
-            if (blackTime <= 0)
-            {
-                blackTime = 0;
-                TimeUp(TeamColor.Black);
-            }
-        }
+
+        if (whiteTime <= 0)
+            TimeUp(TeamColor.White);
+        if (blackTime <= 0)
+            TimeUp(TeamColor.Black);
 
         UpdateUI();
     }
+
 
     void TimeUp(TeamColor loser)
     {

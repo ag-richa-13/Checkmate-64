@@ -12,8 +12,9 @@ public class SceneLoader : Singleton<SceneLoader>
     }
 
 
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         DontDestroyOnLoad(gameObject);
     }
 

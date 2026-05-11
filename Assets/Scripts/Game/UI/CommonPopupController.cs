@@ -48,17 +48,22 @@ public class CommonPopupController : Singleton<CommonPopupController>
             ClosePopup,
             () =>
             {
-                TeamColor resigning = TurnManager.Instance.currentTurn;
-                MatchController.Instance.Resign(resigning);
+                TeamColor myColor =
+                    PhotonPlayerData.LocalSide == PlayerSide.White
+                        ? TeamColor.White
+                        : TeamColor.Black;
+
                 ClosePopup();
+
                 ShowResult(
-                    resigning == TeamColor.White
+                    myColor == TeamColor.White
                         ? "Black Wins (Resign)"
                         : "White Wins (Resign)"
                 );
             }
         );
     }
+
 
     // ================= EXIT =================
     public void ShowExitConfirm()
